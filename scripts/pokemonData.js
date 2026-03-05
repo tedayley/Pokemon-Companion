@@ -342,7 +342,7 @@ function renderPokemon(data, species, pokemonNameEl, pokemonDexEl, pokemonImgEl,
 
 
   if (pokemonDexEl) {
-    pokemonDexEl.textContent = `#${data.id.toString().padStart(4, "0")}`;
+    pokemonDexEl.textContent = `#${species.id.toString().padStart(4, "0")}`;
   }
 
 
