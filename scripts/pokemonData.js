@@ -282,9 +282,9 @@ async function navigateDex(direction) {
       data,
       species,
       pokemonNameEl,
-      pokemonShinyImgEl,
       dexText,
       pokemonImgEl,
+      pokemonShinyImgEl,
       pokemonTypesEl,
       statsContainer,
       learnsetContainer
