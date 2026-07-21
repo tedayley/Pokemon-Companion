@@ -4,11 +4,8 @@
 :root {
   --bg-dark: #0b0f1a;
   --panel-dark: #11162a;
-
   --accent: rgb(0, 229, 255);
-  --accent-glow: 0 0 12px var(--accent),
-                 0 0 25px var(--accent);
-
+  --accent-glow: 0 0 12px var(--accent), 0 0 25px var(--accent);
   --text-main: #e6f1ff;
   --text-muted: #9aa4c7;
 }
@@ -33,12 +30,11 @@ body {
 header {
   display: flex;
   align-items: center;
-  gap: 1.5rem;      /* increase space between elements */
-  padding: 25px 40px; /* increase padding for taller header */
+  gap: 1.5rem;
+  padding: 25px 40px;
   background: var(--panel-dark);
   box-shadow: inset 0 -1px 0 rgba(255,255,255,0.05);
 }
-
 
 header h1 {
   color: var(--accent);
@@ -125,16 +121,53 @@ p {
 }
 
 .ability {
+  position: relative;
+  cursor: help;
   background-color: #222;
-  color: #0ff;
+  color: var(--accent);
   padding: 2px 6px;
   margin-right: 4px;
   border-radius: 4px;
   font-size: 0.9rem;
   display: inline-block;
+  text-shadow: var(--accent-glow);
 }
 
-/* Base style for type labels */
+.ability[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: 125%;
+  transform: translateX(-50%);
+  background: var(--panel-dark);
+  color: var(--accent);
+  padding: 5px 10px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  font-size: 0.85rem;
+  text-align: center;
+  text-shadow: var(--accent-glow);
+  box-shadow: var(--accent-glow);
+  z-index: 100;
+  width: max-content;
+  max-width: 250px;
+}
+
+.ability[data-tooltip]:hover::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 115%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: var(--panel-dark) transparent transparent transparent;
+  z-index: 101;
+}
+
+/* =========================
+   TYPE LABELS
+========================= */
 .type {
   display: inline-block;
   padding: 3px 8px;
@@ -142,39 +175,51 @@ p {
   border-radius: 6px;
   font-size: 0.9rem;
   font-weight: bold;
-  color: #000; /* black text for readability */
-  text-shadow: 0 0 5px rgba(255, 255, 255, 0.2); /* subtle glow on text */
-  background-color: #222;
-  box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+  color: #000;
+  text-shadow: 0 0 5px rgba(255,255,255,0.2);
+  background: var(--type-bg, #222);
+  box-shadow: 0 0 8px var(--type-glow, rgba(0,255,255,0.5));
   transition: 0.3s all;
+  --type-bg: #222;
+  --type-glow: rgba(0,255,255,0.5);
 }
 
-/* Neon colors for each type */
-.type.fire { background-color: #ff4500; box-shadow: 0 0 10px #ff6347; }
-.type.water { background-color: #1e90ff; box-shadow: 0 0 10px #00bfff; }
-.type.grass { background-color: #32cd32; box-shadow: 0 0 10px #7cfc00; }
-.type.electric { background-color: #ffd700; box-shadow: 0 0 10px #ffff00; }
-.type.ice { background-color: #00ffff; box-shadow: 0 0 10px #7fffd4; }
-.type.fighting { background-color: #8b0000; box-shadow: 0 0 10px #ff0000; }
-.type.poison { background-color: #9400d3; box-shadow: 0 0 10px #9932cc; }
-.type.ground { background-color: #cd853f; box-shadow: 0 0 10px #d2b48c; }
-.type.flying { background-color: #87ceeb; box-shadow: 0 0 10px #00bfff; }
-.type.psychic { background-color: #ff1493; box-shadow: 0 0 10px #ff69b4; }
-.type.bug { background-color: #9acd32; box-shadow: 0 0 10px #adff2f; }
-.type.rock { background-color: #a9a9a9; box-shadow: 0 0 10px #d3d3d3; }
-.type.ghost { background-color: #4b0082; box-shadow: 0 0 10px #8a2be2; }
-.type.dragon { background-color: #006400; box-shadow: 0 0 10px #32cd32; }
-.type.dark { background-color: #2f4f4f; box-shadow: 0 0 10px #708090; }
-.type.steel { background-color: #b0c4de; box-shadow: 0 0 10px #87cefa; }
-.type.fairy { background-color: #ffb6c1; box-shadow: 0 0 10px #ff69b4; }
-.type.normal { background-color: #a8a878; box-shadow: 0 0 10px #dcdcdc; }
+.type.fire { --type-bg: #ff4500; --type-glow: #ff6347; }
+.type.water { --type-bg: #1e90ff; --type-glow: #00bfff; }
+.type.grass { --type-bg: #32cd32; --type-glow: #7cfc00; }
+.type.electric { --type-bg: #ffd700; --type-glow: #ffff00; }
+.type.ice { --type-bg: #00ffff; --type-glow: #7fffd4; }
+.type.fighting { --type-bg: #8b0000; --type-glow: #ff0000; }
+.type.poison { --type-bg: #9400d3; --type-glow: #9932cc; }
+.type.ground { --type-bg: #cd853f; --type-glow: #d2b48c; }
+.type.flying { --type-bg: #87ceeb; --type-glow: #00bfff; }
+.type.psychic { --type-bg: #ff1493; --type-glow: #ff69b4; }
+.type.bug { --type-bg: #9acd32; --type-glow: #adff2f; }
+.type.rock { --type-bg: #a9a9a9; --type-glow: #d3d3d3; }
+.type.ghost { --type-bg: #4b0082; --type-glow: #8a2be2; }
+.type.dark { --type-bg: #2f4f4f; --type-glow: #708090; }
+.type.steel { --type-bg: #b0c4de; --type-glow: #87cefa; }
+.type.fairy { --type-bg: #ffb6c1; --type-glow: #ff69b4; }
+.type.normal { --type-bg: #a8a878; --type-glow: #dcdcdc; }
+.type.dragon {
+  --type-bg: linear-gradient(45deg, #00ff00, #00ffff);
+  --type-glow: #00ff00;
+  border: 1px solid #0ff;
+  box-shadow: 0 0 12px #00ff00, 0 0 18px #00ffff inset;
+  color: #000000;
+  text-shadow: 0 0 6px #00ff00, 0 0 12px #00ffff;
+}
 
-/* Hover effect for neon glow */
 .type:hover {
   transform: scale(1.1);
   box-shadow: 0 0 12px currentColor;
 }
 
+.type.dragon:hover {
+  transform: scale(1.15);
+  text-shadow: 0 0 10px #00ff00, 0 0 20px #00ffff;
+  box-shadow: 0 0 16px #00ff00, 0 0 28px #00ffff inset;
+}
 
 /* =========================
    STATS
@@ -186,16 +231,47 @@ p {
   border-left: 3px solid var(--accent);
 }
 
+.stat-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 40px;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.stat-bar-container {
+  height: 10px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.stat-bar {
+  height: 100%;
+  transition: width 0.6s ease;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.stat-value {
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
 /* =========================
    TABLES
 ========================= */
 table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 8px;
 }
 
-th, td {
-  padding: 0.5rem;
+th,
+td {
+  padding: 6px 10px;
+  text-align: left;
+  font-size: 0.95rem;
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
@@ -236,116 +312,51 @@ footer {
   color: var(--text-muted);
 }
 
-/* bar graph.*/
-.stat-row {
-  display: grid;
-  grid-template-columns: 100px 1fr 40px;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
-.stat-bar-container {
-  height: 10px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.stat-bar {
-  height: 100%;
-  transition: width 0.6s ease;
-  box-shadow: 0 0 10px currentColor;
-}
-
-.stat-value {
-  text-align: right;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-#suggestions {
-  position: absolute;
-  background: var(--panel-dark);
-  border: 1px solid var(--accent);
-  box-shadow: var(--accent-glow);
-  z-index: 10;
-}
-
-#suggestions div {
-  padding: 0.4rem 0.6rem;
-  cursor: pointer;
-}
-
-#suggestions div:hover {
-  background: rgba(255,255,255,0.1);
-}
-
-#searchSuggestions {
-  border: 1px solid #aaa;
-  background-color: #111;
-  color: #fff;
-  max-height: 240px;
-  overflow-y: auto;
-  padding: 0;
-  margin: 0;
-  font-family: sans-serif;
-}
-
-.suggestion {
-  padding: 5px 10px;
-  cursor: pointer;
-}
-
-.suggestion.highlight {
-  background-color: #4cafff; /* neon blue highlight */
-  color: #fff;
-}
-
 /* =========================
-   NEON SEARCH DROPDOWN
+   SEARCH DROPDOWN
 ========================= */
-
-/* Container */
 .search-container {
   position: relative;
-  width: 250px; /* adjust if needed */
+  width: 250px;
 }
 
-/* Suggestions dropdown */
 #searchSuggestions {
   position: absolute;
-  top: 100%; /* drop below input */
+  top: 100%;
   left: 0;
   right: 0;
   background: var(--panel-dark);
   border: 2px solid var(--accent);
   border-radius: 6px;
-  max-height: 240px;
+  max-height: calc(3 * 2.2rem);
   overflow-y: auto;
   z-index: 1000;
-  display: none; /* hidden by default, JS will show */
+  display: none;
   box-shadow: var(--accent-glow);
+  padding: 0;
+  margin: 0;
+  color: #fff;
+  font-family: sans-serif;
+  transition: top 0.1s ease;
 }
 
-/* Individual suggestion */
 #searchSuggestions .suggestion {
   padding: 8px 10px;
   cursor: pointer;
   color: var(--accent);
   text-shadow: var(--accent-glow);
   transition: all 0.1s ease-in-out;
+  height: 2.2rem;
+  line-height: 2.2rem;
 }
 
-/* Highlighted suggestion (hover or arrow navigation) */
 #searchSuggestions .suggestion.highlighted,
 #searchSuggestions .suggestion:hover {
-  background-color: rgba(0, 229, 255, 0.15); /* soft cyan glow */
+  background-color: rgba(0,229,255,0.15);
   color: #fff;
   text-shadow: 0 0 8px var(--accent), 0 0 16px var(--accent);
 }
 
-/* Scrollbar for suggestions (optional) */
 #searchSuggestions::-webkit-scrollbar {
   width: 6px;
 }
@@ -356,24 +367,16 @@ footer {
   box-shadow: var(--accent-glow);
 }
 
-#searchSuggestions {
-  transition: top 0.1s ease; /* smooth position change */
+.suggestion {
+  padding: 5px 10px;
+  cursor: pointer;
 }
 
-/* =========================
-   SEARCH DROPDOWN: SHOW 3 ITEMS AT ONCE
-========================= */
-#searchSuggestions {
-  max-height: calc(3 * 2.2rem); /* show ~3 suggestions; adjust 2.2rem to match item height */
+.suggestion.highlight {
+  background-color: #4cafff;
+  color: #fff;
 }
 
-#searchSuggestions .suggestion {
-  height: 2.2rem;          /* same as max-height calculation for consistent scrolling */
-  line-height: 2.2rem;     /* vertically center text */
-  padding: 0 10px;         /* adjust horizontal padding */
-}
-
-/* neon name generated */
 .generated-name {
   margin-top: 10px;
   color: var(--accent);
@@ -383,63 +386,39 @@ footer {
   text-align: center;
 }
 
-
-/* Tooltip container */
-.ability {
-  position: relative;
-  cursor: help;
-  background-color: #222;
-  color: var(--accent);
-  padding: 2px 6px;
-  border-radius: 4px;
-  display: inline-block;
-  text-shadow: var(--accent-glow);
+#openNameGen {
+  background: rgba(0, 0, 0, 0.8);
+  color: #000;
+  border: 2px solid #00f0ff;
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-shadow: 0 0 8px #00f0ff, 0 0 12px #00f0ff, 0 0 20px #ff00ff;
+  box-shadow: 0 0 6px #00f0ff, 0 0 12px #00f0ff, 0 0 18px #ff00ff;
+  animation: neonPulse 2.5s infinite alternate;
 }
 
-/* Neon tooltip using data-tooltip instead of title */
-.ability[data-tooltip]:hover::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  left: 50%;
-  bottom: 125%;
-  transform: translateX(-50%);
-  background: var(--panel-dark);
-  color: var(--accent);
-  padding: 5px 10px;
-  border-radius: 8px;
-  white-space: pre-wrap;
-  font-size: 0.85rem;
-  text-align: center;
-  text-shadow: var(--accent-glow);
-  box-shadow: var(--accent-glow);
-  z-index: 100;
-  width: max-content;
-  max-width: 250px;
+#openNameGen:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 12px #00f0ff, 0 0 24px #00f0ff, 0 0 36px #ff00ff, inset 0 0 10px #ff00ff;
 }
 
-.ability[data-tooltip]:hover::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: 115%;
-  transform: translateX(-50%);
-  border-width: 5px;
-  border-style: solid;
-  border-color: var(--panel-dark) transparent transparent transparent;
-  z-index: 101;
+#openNameGen:active {
+  transform: scale(0.95);
 }
-
 
 /* =========================
    TYPE EFFECTIVENESS CALCULATOR
 ========================= */
-
 #calculator {
   margin-top: 1rem;
   padding: 1rem;
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.4);
-  box-shadow: 0 0 12px rgba(0, 255, 255, 0.25);
+  background: rgba(0,0,0,0.4);
+  box-shadow: 0 0 12px rgba(0,255,255,0.25);
   animation: fadeIn 0.3s ease-in-out;
 }
 
@@ -463,10 +442,8 @@ footer {
   font-size: 0.8rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-
   color: var(--accent);
   text-shadow: var(--accent-glow);
-
   transition: color 0.3s ease, text-shadow 0.3s ease;
 }
 
@@ -476,7 +453,6 @@ footer {
   gap: 6px;
 }
 
-/* Category color accents (semantic via data-level) */
 .type-row[data-level="quad"] .type-label {
   color: #ff3b3b;
   text-shadow: 0 0 8px #ff3b3b;
@@ -507,7 +483,6 @@ footer {
   text-shadow: 0 0 8px #b84cff;
 }
 
-/* Entry animation */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -520,60 +495,12 @@ footer {
 }
 
 /* =========================
-   TYPE COLORS (for chips)
-========================= */
-
-/* Neon colors for each type */
-.type.fire    { background-color: #ff4500; box-shadow: 0 0 10px #ff6347; color: #000; }
-.type.water   { background-color: #1e90ff; box-shadow: 0 0 10px #00bfff; color: #000; }
-.type.grass   { background-color: #32cd32; box-shadow: 0 0 10px #7cfc00; color: #000; }
-.type.electric{ background-color: #ffd700; box-shadow: 0 0 10px #ffff00; color: #000; }
-.type.ice     { background-color: #00ffff; box-shadow: 0 0 10px #7fffd4; color: #000; }
-.type.fighting{ background-color: #8b0000; box-shadow: 0 0 10px #ff0000; color: #000; }
-.type.poison  { background-color: #9400d3; box-shadow: 0 0 10px #9932cc; color: #000; }
-.type.ground  { background-color: #cd853f; box-shadow: 0 0 10px #d2b48c; color: #000; }
-.type.flying  { background-color: #87ceeb; box-shadow: 0 0 10px #00bfff; color: #000; }
-.type.psychic { background-color: #ff1493; box-shadow: 0 0 10px #ff69b4; color: #000; }
-.type.bug     { background-color: #9acd32; box-shadow: 0 0 10px #adff2f; color: #000; }
-.type.rock    { background-color: #a9a9a9; box-shadow: 0 0 10px #d3d3d3; color: #000; }
-.type.ghost   { background-color: #4b0082; box-shadow: 0 0 10px #8a2be2; color: #000; }
-.type.dragon  { background-color: #00c853; box-shadow: 0 0 12px #00ff7f; color: #000; }
-.type.dark    { background-color: #2f4f4f; box-shadow: 0 0 10px #708090; color: #000; }
-.type.steel   { background-color: #b0c4de; box-shadow: 0 0 10px #87cefa; color: #000; }
-.type.fairy   { background-color: #ffb6c1; box-shadow: 0 0 10px #ff69b4; color: #000; }
-.type.normal  { background-color: #a8a878; box-shadow: 0 0 10px #dcdcdc; color: #000; }
-
-/* Hover effect for neon glow (chips) */
-.type:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 12px currentColor;
-}
-
-/* Dragon type with extra neon flair */
-.type.dragon {
-  background: linear-gradient(45deg, #00ff00, #00ffff); /* bright green to cyan gradient */
-  color: #000000; /* white text for contrast */
-  text-shadow: 0 0 6px #00ff00, 0 0 12px #00ffff; /* layered glow */
-  box-shadow: 0 0 12px #00ff00, 0 0 18px #00ffff inset; /* outer + inner neon glow */
-  border: 1px solid #0ff; /* subtle neon border for definition */
-  transition: 0.3s all;
-}
-
-/* Hover effect for extra pop */
-.type.dragon:hover {
-  transform: scale(1.15);
-  text-shadow: 0 0 10px #00ff00, 0 0 20px #00ffff;
-  box-shadow: 0 0 16px #00ff00, 0 0 28px #00ffff inset;
-}
-
-
-/* =========================
    NATURE CHART
 ========================= */
 #naturechart {
   padding: 20px;
   background: var(--panel-dark);
-  overflow-x: auto; /* allow scrolling if table is too wide */
+  overflow-x: auto;
 }
 
 .neon-table {
@@ -588,35 +515,26 @@ footer {
   padding: 12px;
   text-align: center;
   font-weight: bold;
-  color: black; /* black letters inside neon glow */
+  color: black;
   text-shadow: var(--accent-glow);
   transition: all 0.7s ease;
 }
 
-/* Table header styling */
 .neon-table th {
   background: #111111;
 }
 
-/* Hover effect for rows */
 .neon-table tr:hover td {
   background: #001f1f;
   text-shadow: 0 0 8px var(--accent), 0 0 16px var(--accent);
 }
 
-/* Thrumming effect applied to each cell */
-.neon-table td.thrumming {
-  animation: thrumming 2s infinite alternate;
-}
-
-/* Neutral natures diagonal styling */
 .neon-table td.neutral {
   background: #0a0a0a;
   border-color: #292929;
   text-shadow: 0 0 7px #aaaaaa;
 }
 
-/* Thrumming keyframes (pulse effect) */
 @keyframes thrumming {
   0% {
     box-shadow: 0 0 5px var(--accent), 0 0 10px var(--accent);
@@ -629,7 +547,6 @@ footer {
   }
 }
 
-/* Responsive table for small screens */
 @media (max-width: 768px) {
   .neon-table th,
   .neon-table td {
@@ -638,59 +555,50 @@ footer {
   }
 }
 
-
 /* =========================
-   MOVE HOVER TOOLTIP
+   MOVE TOOLTIP & TABLES
 ========================= */
-
 .move-name {
   position: relative;
   cursor: help;
-  color: var(--accent);
-  text-shadow: var(--accent-glow);
-  transition: 0.2s ease;
+  color: #000000;
+  font-weight: bold;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px 6px;
+  display: inline-block;
+
+  text-shadow: 0 0 8px #00f0ff, 0 0 12px #ff00ff, 0 0 16px #ff00ff;
 }
 
 .move-name:hover {
-  color: #fff;
-  text-shadow:
-    0 0 6px var(--accent),
-    0 0 12px var(--accent);
+  color: #ffffff;
+  text-shadow: 0 0 4px #00f0ff, 0 0 8px #00f0ff, 0 0 12px #ff00ff, 0 0 16px #ff00ff;
+  transform: scale(1.02);
 }
 
-/* Tooltip */
 .move-name::after {
   content: attr(data-tooltip);
   white-space: pre-line;
-
   position: absolute;
   left: 50%;
   bottom: 120%;
   transform: translateX(-50%);
-
   background: #111;
   color: #fff;
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid var(--accent);
-
   font-size: 0.85rem;
   line-height: 1.3;
   width: max-content;
   max-width: 260px;
-
   opacity: 0;
   pointer-events: none;
   z-index: 999;
-
-  box-shadow:
-    0 0 10px var(--accent),
-    0 0 20px rgba(0, 255, 255, 0.4);
-
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
-/* Tooltip arrow */
 .move-name::before {
   content: "";
   position: absolute;
@@ -709,144 +617,32 @@ footer {
   opacity: 1;
 }
 
-
-/* =========================
-   MOVE TABLES
-========================= */
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 8px;
-}
-
-/* =========================
-   MOVE TABLE NEON (BLACK TEXT)
-========================= */
-
-th,
-td {
-  padding: 6px 10px;
-  text-align: left;
-  font-size: 0.95rem;
-}
-
-/* Header row */
-thead th {
-  color: #000;
-  background: var(--accent);
-  text-shadow: none;
-  box-shadow: 0 0 8px var(--accent);
-}
-
-/* Row separator */
-tbody tr {
-  border-bottom: 1px solid rgba(0, 255, 255, 0.25);
-}
-
-/* Hover row glow */
-tbody tr:hover {
-  background: rgba(0, 255, 255, 0.15);
-}
-
-/* =========================
-   LEVEL / METHOD COLUMN
-========================= */
-
-.move-meta {
-  width: 110px;
-  color: #000;
-  font-weight: bold;
-  background: rgba(0, 255, 255, 0.65);
-  border-radius: 4px;
-  box-shadow:
-    0 0 6px rgba(0, 255, 255, 0.8),
-    inset 0 0 4px rgba(255, 255, 255, 0.6);
-}
-
-/* =========================
-   MOVE NAME
-========================= */
-
-.move-name {
-  color: #000;
-  font-weight: bold;
-  border-radius: 4px;
-  box-shadow:
-    0 0 6px rgba(0, 255, 255, 0.6),
-    inset 0 0 4px rgba(255, 255, 255, 0.9);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-/* Hover = stronger glow */
-.move-name:hover {
-  transform: scale(1.02);
-  box-shadow:
-    0 0 10px rgba(0, 255, 255, 1),
-    inset 0 0 6px rgba(255, 255, 255, 1);
-}
-
-
-/* =========================
-   LEVELS Moves
-========================= */
-
-.move-level {
-  color: #000000; /* base neon color for text */
-  border-radius: 4px;
-  font-weight: bold;
-  text-align: center;
-  min-width: 48px;
-
-  background: rgba(0, 0, 0, 0.6); /* subtle dark background so text pops */
-
-  /* Neon glow around text */
-  text-shadow:
-    0 0 4px #00f0ff,
-    0 0 8px #00f0ff,
-    0 0 12px #00f0ff,
-    0 0 16px #ff00ff,
-    0 0 20px #ff00ff;
-
-  box-shadow:
-    0 0 6px rgba(0, 255, 255, 0.6),
-    inset 0 0 4px rgba(255, 255, 255, 0.9);
-
-  transition: transform 0.15s ease, box-shadow 0.15s ease, text-shadow 0.15s ease;
-}
-
-
-/* =========================
-   METHODS Moves
-========================= */
-
+.move-level,
 .move-method {
-  color: #000000; /* base neon color for text */
+  color: #00f0ff;
   border-radius: 4px;
+  border: 1px solid rgba(0, 240, 255, 0.7);
   font-weight: bold;
   text-align: center;
   min-width: 48px;
+  background: rgba(0,0,0,0.6);
 
-  background: rgba(0, 0, 0, 0.6); /* subtle dark background so text pops */
-
-  /* Neon glow around text */
-  text-shadow:
-    0 0 4px #00f0ff,
-    0 0 8px #00f0ff,
-    0 0 12px #00f0ff,
-    0 0 16px #ff00ff,
-    0 0 20px #ff00ff;
-
-  box-shadow:
-    0 0 6px rgba(0, 255, 255, 0.6),
-    inset 0 0 4px rgba(255, 255, 255, 0.9);
-
-  transition: transform 0.15s ease, box-shadow 0.15s ease, text-shadow 0.15s ease;
+  text-shadow: 0 0 8px #ff00ff, 0 0 16px #ff00ff;
 }
 
+tbody tr {
+  border-bottom: 1px solid rgba(0,255,255,0.25);
+}
 
+tbody tr:hover {
+  background: rgba(0,255,255,0.15);
+}
+
+/* =========================
+   BUTTONS / FORM / DEX
+========================= */
 .neon-button {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0,0,0,0.8);
   color: #000;
   border: 2px solid #00f0ff;
   padding: 12px 28px;
@@ -855,108 +651,90 @@ tbody tr:hover {
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
-  
-  text-shadow:
-    0 0 4px #00f0ff,
-    0 0 8px #00f0ff,
-    0 0 12px #00f0ff,
-    0 0 16px #ff00ff,
-    0 0 20px #ff00ff;
-
-  box-shadow:
-    0 0 6px #00f0ff,
-    0 0 12px #00f0ff,
-    0 0 18px #ff00ff,
-    inset 0 0 6px #00f0ff;
-
-  animation: neonPulse 2.5s infinite alternate;
+  text-shadow: 0 0 12px #00f0ff, 0 0 16px 0 0 20px #ff00ff;
+  box-shadow: 0 0 6px #00f0ff, 0 0 12px #00f0ff, 0 0 18px #ff00ff;
 }
 
-/* Hover effect */
 .neon-button:hover {
   transform: scale(1.08);
-  box-shadow:
-    0 0 12px #00f0ff,
-    0 0 24px #00f0ff,
-    0 0 36px #ff00ff,
-    inset 0 0 10px #ff00ff;
+  box-shadow: 0 0 12px #00f0ff, 0 0 24px #00f0ff, 0 0 36px #ff00ff;
 }
 
-/* Click effect */
 .neon-button:active {
   transform: scale(0.95);
 }
 
-/* Glow animation */
 @keyframes neonPulse {
   from {
-    box-shadow:
-      0 0 6px #00f0ff,
-      0 0 12px #00f0ff,
-      0 0 18px #ff00ff,
-      inset 0 0 6px #00f0ff;
+    box-shadow: 0 0 6px #00f0ff, 0 0 12px #00f0ff, 0 0 18px #ff00ff, inset 0 0 6px #00f0ff;
   }
   to {
-    box-shadow:
-      0 0 14px #00f0ff,
-      0 0 28px #00f0ff,
-      0 0 40px #ff00ff,
-      inset 0 0 12px #ff00ff;
+    box-shadow: 0 0 14px #00f0ff, 0 0 28px #00f0ff, 0 0 40px #ff00ff, inset 0 0 12px #ff00ff;
   }
 }
-
-/* ============================= */
-/* DEX NAV NEON STYLE */
-/* ============================= */
 
 .dex-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 18px;
   flex-wrap: nowrap;
-  margin: 10px 0;
+  margin: 12px 0;
 }
 
-/* Arrow Buttons */
 .dex-arrow {
-  background: #111;
+  background: #0f0f0f;
   border: 1px solid var(--accent);
-  color: #fff;
-  padding: 6px 14px;
-  font-size: 1.1rem;
-  border-radius: 8px;
+  color: var(--accent);
+  padding: 6px 16px;
+  font-size: 1.2rem;
+  border-radius: 10px;
   cursor: pointer;
-  transition: 0.2s ease;
-  box-shadow: var(--accent-glow);
+  transition: all 0.2s ease;
+  box-shadow: 0 0 6px var(--accent);
+  position: relative;
+  overflow: hidden;
+  animation: arrowPulse 3s infinite alternate;
 }
 
 .dex-arrow:hover {
-  transform: scale(1.08);
+  transform: scale(1.15);
+  box-shadow: 0 0 14px var(--accent), 0 0 6px #ffffff55;
 }
 
 .dex-arrow:active {
-  transform: scale(0.95);
+  transform: scale(0.9);
 }
 
-/* Dex Number */
+.dex-arrow::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: 0.4s;
+}
+
+.dex-arrow:hover::after {
+  left: 100%;
+}
+
 .dex-number {
   display: flex;
   align-items: center;
   gap: 6px;
   white-space: nowrap;
-  font-size: 1rem;
+  font-size: 1.05rem;
   color: var(--accent);
   text-shadow: var(--accent-glow);
-  animation: thrumming 2s infinite alternate;
+  letter-spacing: 1px;
+  position: relative;
 }
 
-/* ============================= */
-/* FORMS SECTION */
-/* ============================= */
-
 #pokemonForms {
-  height: 50px;      /* Reserved space */
+  height: 50px;
   overflow-y: auto;
   display: flex;
   flex-wrap: wrap;
@@ -964,7 +742,6 @@ tbody tr:hover {
   padding: 4px 0;
 }
 
-/* Form Buttons */
 .form-button {
   background: #111;
   border: 1px solid var(--accent);
@@ -986,104 +763,33 @@ tbody tr:hover {
   box-shadow: 0 0 12px #ff00ff;
 }
 
-/* Optional: Give Forms Same Thrumming Glow As Headings */
 #pokemonForms,
 .dex-number {
-  animation: thrumming 2s infinite alternate;
+  border: 0px ;
 }
 
-/* ============================= */
-/* DEX NAV — ENHANCED NEON */
-/* ============================= */
-
-.dex-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  flex-wrap: nowrap;
-  margin: 12px 0;
-}
-
-/* ================= */
-/* ARROW BUTTONS */
-/* ================= */
-
-.dex-arrow {
-  background: #0f0f0f;
+.neon-text {
+  background: #000;
   border: 1px solid var(--accent);
-  color: var(--accent);
-  padding: 6px 16px;
-  font-size: 1.2rem;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 0 6px var(--accent);
-  position: relative;
-  overflow: hidden;
-}
-
-/* Glow pulse animation */
-.dex-arrow {
-  animation: arrowPulse 3s infinite alternate;
-}
-
-/* Hover effect */
-.dex-arrow:hover {
-  transform: scale(1.15);
-  box-shadow: 0 0 14px var(--accent), 0 0 6px #ffffff55;
-}
-
-/* Click effect */
-.dex-arrow:active {
-  transform: scale(0.9);
-}
-
-/* Subtle animated glow sweep */
-.dex-arrow::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    120deg,
-    transparent,
-    rgba(255,255,255,0.2),
-    transparent
-  );
-  transition: 0.4s;
-}
-
-.dex-arrow:hover::after {
-  left: 100%;
-}
-
-/* ================= */
-/* DEX NUMBER TEXT */
-/* ================= */
-
-.dex-number {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-  font-size: 1.05rem;
-  color: var(--accent);
-  text-shadow: var(--accent-glow);
+  color: #ffffff;
   letter-spacing: 1px;
-  position: relative;
+  -webkit-text-stroke: 0.4px var(--accent);
+  text-shadow: 0 0 4px var(--accent), 0 0 8px var(--accent);
+  box-shadow: 0 0 6px var(--accent), inset 0 0 4px var(--accent);
+  transition: all 0.2s ease;
 }
 
-/* Shimmer animation */
-.dex-number {
-  animation: textShimmer 4s infinite alternate;
+.neon-text:hover {
+  box-shadow: 0 0 14px var(--accent), 0 0 20px var(--accent);
+  transform: scale(1.05);
 }
 
-/* ================= */
-/* ANIMATIONS */
-/* ================= */
+.neon-text.active-form {
+  border-color: #ff00ff;
+  -webkit-text-stroke: 0.5px #ff00ff;
+  text-shadow: 0 0 6px #ff00ff, 0 0 14px #ff00ff;
+  box-shadow: 0 0 16px #ff00ff, 0 0 26px #ff00ff;
+}
 
 @keyframes arrowPulse {
   0% {
@@ -1101,71 +807,4 @@ tbody tr:hover {
   100% {
     text-shadow: 0 0 14px var(--accent), 0 0 4px #ffffff55;
   }
-}
-
-.neon-button {
-  background: #111;
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  padding: 6px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  box-shadow: var(--accent-glow);
-  transition: all 0.2s ease;
-}
-
-.neon-button:hover {
-  transform: scale(1.08);
-  box-shadow: 0 0 14px var(--accent), 0 0 6px #fff;
-}
-
-.neon-button:active {
-  transform: scale(0.95);
-}
-
-/* Neon glowing text for variants */
-.neon-text {
-  background: #000;
-  border: 1px solid var(--accent);
-
-  color: #ffffff; /* White = best readability */
-
-  letter-spacing: 1px;
-
-  /* Neon outline effect */
-  -webkit-text-stroke: 0.4px var(--accent);
-
-  text-shadow:
-    0 0 4px var(--accent),
-    0 0 8px var(--accent);
-
-  box-shadow:
-    0 0 6px var(--accent),
-    inset 0 0 4px var(--accent);
-
-  transition: all 0.2s ease;
-}
-
-/* Hover */
-.neon-text:hover {
-  box-shadow:
-    0 0 14px var(--accent),
-    0 0 20px var(--accent);
-
-  transform: scale(1.05);
-}
-
-/* Active */
-.neon-text.active-form {
-  border-color: #ff00ff;
-
-  -webkit-text-stroke: 0.5px #ff00ff;
-
-  text-shadow:
-    0 0 6px #ff00ff,
-    0 0 14px #ff00ff;
-
-  box-shadow:
-    0 0 16px #ff00ff,
-    0 0 26px #ff00ff;
 }

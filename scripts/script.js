@@ -1,17 +1,16 @@
 // ===============================
 // TAB SWITCHING
 // ===============================
-const tabs = document.querySelectorAll(".tab");
-const contents = document.querySelectorAll(".tab-content");
+const tabs = Array.from(document.querySelectorAll(".tab"));
+const contents = Array.from(document.querySelectorAll(".tab-content"));
+
+const setActiveTab = (activeTab) => {
+  tabs.forEach(t => t.classList.toggle("active", t === activeTab));
+  contents.forEach(c => c.classList.toggle("active", c.id === activeTab.dataset.tab));
+};
 
 tabs.forEach(tab => {
-  tab.addEventListener("click", () => {
-    tabs.forEach(t => t.classList.remove("active"));
-    contents.forEach(c => c.classList.remove("active"));
-
-    tab.classList.add("active");
-    document.getElementById(tab.dataset.tab).classList.add("active");
-  });
+  tab.addEventListener("click", () => setActiveTab(tab));
 });
 
 // ===============================

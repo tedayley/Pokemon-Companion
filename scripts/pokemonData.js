@@ -5,6 +5,70 @@ const API_BASE = "https://pokeapi.co/api/v2";
 
 // Cache Pokémon list for autocomplete
 let pokemonCache = [];
+let pokemonCacheNormalized = [];
+const pokemonDataCache = new Map();
+const speciesCache = new Map();
+const abilityCache = new Map();
+const moveCache = new Map();
+let activePokemonRequestId = 0;
+let suggestionTimer = null;
+let dropdownFrame = null;
+
+const CACHE_LIMITS = {
+  pokemonData: 80,
+  species: 40,
+  ability: 60,
+  move: 60
+};
+
+function getCacheForUrl(url) {
+  if (url.includes("/pokemon-species")) return { cache: speciesCache, limit: CACHE_LIMITS.species };
+  if (url.includes("/ability/")) return { cache: abilityCache, limit: CACHE_LIMITS.ability };
+  if (url.includes("/move/")) return { cache: moveCache, limit: CACHE_LIMITS.move };
+  if (url.includes("/pokemon/")) return { cache: pokemonDataCache, limit: CACHE_LIMITS.pokemonData };
+  return null;
+}
+
+function getCachedValue(cache, key) {
+  if (!cache.has(key)) return undefined;
+  const value = cache.get(key);
+  cache.delete(key);
+  cache.set(key, value);
+  return value;
+}
+
+function setCachedValue(cache, key, value, limit) {
+  if (cache.has(key)) {
+    cache.delete(key);
+  } else if (cache.size >= limit) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey !== undefined) {
+      cache.delete(oldestKey);
+    }
+  }
+
+  cache.set(key, value);
+  return value;
+}
+
+async function fetchJson(url) {
+  const cacheInfo = getCacheForUrl(url);
+  if (cacheInfo) {
+    const cached = getCachedValue(cacheInfo.cache, url);
+    if (cached !== undefined) return cached;
+  }
+
+  const response = await fetch(url);
+  if (!response.ok) return null;
+
+  const data = await response.json();
+
+  if (cacheInfo) {
+    setCachedValue(cacheInfo.cache, url, data, cacheInfo.limit);
+  }
+
+  return data;
+}
 
 // ===============================
 // DOMContentLoaded WRAPPER
@@ -66,29 +130,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 // ===============================
 async function loadPokemonList() {
   try {
-    // Step 1: Get total species count
-    const metaResponse = await fetch(`${API_BASE}/pokemon-species?limit=1`);
-    const metaData = await metaResponse.json();
+    const metaData = await fetchJson(`${API_BASE}/pokemon-species?limit=1`);
+    if (!metaData) return;
 
     const totalSpecies = metaData.count;
+    const data = await fetchJson(`${API_BASE}/pokemon-species?limit=${totalSpecies}`);
 
-    // Step 2: Fetch all species using dynamic count
-    const response = await fetch(
-      `${API_BASE}/pokemon-species?limit=${totalSpecies}`
-    );
+    if (!data?.results) return;
 
-    const data = await response.json();
-
-    // Step 3: Store names in cache
     pokemonCache = data.results.map(p => p.name);
-
+    pokemonCacheNormalized = pokemonCache.map(name => normalizeName(name));
   } catch (err) {
     console.error("Failed to load Pokémon list:", err);
   }
 }
 
 function normalizeName(name) {
-  return name.toLowerCase().replace(/[\s-]/g, "");
+  return String(name).toLowerCase().replace(/[\s-]/g, "");
 }
 
 // ===============================
@@ -97,7 +155,6 @@ function normalizeName(name) {
 function setupSearch(searchInput, suggestionsBox, pokemonNameEl, pokemonDexEl, pokemonImgEl, pokemonShinyImgEl, pokemonTypesEl, statsContainer, learnsetContainer) {
   let selectedIndex = -1; // tracks arrow key selection
 
-  // Position dropdown above input if near bottom of viewport
   function positionDropdown() {
     const rect = searchInput.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
@@ -110,21 +167,20 @@ function setupSearch(searchInput, suggestionsBox, pokemonNameEl, pokemonDexEl, p
     }
   }
 
-  // Highlight selected suggestion
+  function scheduleDropdownPosition() {
+    if (dropdownFrame) cancelAnimationFrame(dropdownFrame);
+    dropdownFrame = requestAnimationFrame(positionDropdown);
+  }
+
   function updateHighlight(items, index) {
     items.forEach((item, i) => {
+      item.classList.toggle("highlighted", i === index);
       if (i === index) {
-        item.classList.add("highlighted");
-        // Scroll the highlighted item into view
-        item.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      } else {
-        item.classList.remove("highlighted");
+        item.scrollIntoView({ block: "nearest", behavior: "auto" });
       }
     });
   }
 
-
-  // Handle selecting a suggestion
   function selectSuggestion(name) {
     searchInput.value = capitalize(name);
     suggestionsBox.innerHTML = "";
@@ -132,9 +188,7 @@ function setupSearch(searchInput, suggestionsBox, pokemonNameEl, pokemonDexEl, p
     loadPokemon(name, pokemonNameEl, pokemonDexEl, pokemonImgEl, pokemonShinyImgEl, pokemonTypesEl, statsContainer, learnsetContainer);
   }
 
-  // Input event: filter suggestions
-  searchInput.addEventListener("input", () => {
-    const query = searchInput.value.toLowerCase();
+  function renderSuggestions(query) {
     suggestionsBox.innerHTML = "";
     selectedIndex = -1;
 
@@ -143,35 +197,48 @@ function setupSearch(searchInput, suggestionsBox, pokemonNameEl, pokemonDexEl, p
       return;
     }
 
-    const matches = pokemonCache
-      .filter(name => normalizeName(name).includes(normalizeName(query)))
-      .slice(0, 8);
+    const normalizedQuery = normalizeName(query);
+    const matches = pokemonCacheNormalized
+      .map((normalizedName, index) => ({ normalizedName, name: pokemonCache[index] }))
+      .filter(entry => entry.normalizedName.includes(normalizedQuery))
+      .slice(0, 8)
+      .map(entry => entry.name);
 
     if (matches.length === 0) {
       suggestionsBox.style.display = "none";
       return;
     }
 
+    const fragment = document.createDocumentFragment();
     matches.forEach((name, index) => {
       const div = document.createElement("div");
       div.className = "suggestion";
-
-      const displayName = name.replace(/-/g, " ");
-      div.textContent = capitalize(displayName);
-
+      div.textContent = capitalize(name.replace(/-/g, " "));
       div.dataset.index = index;
-      div.dataset.name = name; // store real API name
-
+      div.dataset.name = name;
       div.addEventListener("click", () => selectSuggestion(name));
-
-      suggestionsBox.appendChild(div);
+      fragment.appendChild(div);
     });
 
+    suggestionsBox.appendChild(fragment);
     suggestionsBox.style.display = "block";
-    positionDropdown();
+    scheduleDropdownPosition();
+  }
+
+  searchInput.addEventListener("input", () => {
+    const query = searchInput.value.trim().toLowerCase();
+
+    if (suggestionTimer) clearTimeout(suggestionTimer);
+    if (!query) {
+      suggestionsBox.innerHTML = "";
+      suggestionsBox.style.display = "none";
+      selectedIndex = -1;
+      return;
+    }
+
+    suggestionTimer = window.setTimeout(() => renderSuggestions(query), 120);
   });
 
-  // Arrow key navigation + Enter
   searchInput.addEventListener("keydown", (e) => {
     const items = suggestionsBox.querySelectorAll(".suggestion");
     if (items.length === 0) return;
@@ -195,48 +262,45 @@ function setupSearch(searchInput, suggestionsBox, pokemonNameEl, pokemonDexEl, p
     }
   });
 
-  // Click outside to hide suggestions
   document.addEventListener("click", (e) => {
     if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
       suggestionsBox.style.display = "none";
     }
   });
 
-  // Reposition dropdown on window resize/scroll
-  window.addEventListener("resize", positionDropdown);
-  window.addEventListener("scroll", positionDropdown);
+  window.addEventListener("resize", scheduleDropdownPosition);
+  window.addEventListener("scroll", scheduleDropdownPosition, { passive: true });
 }
 
 // ===============================
 // LOAD POKÉMON DATA FROM API
 // ===============================
 async function loadPokemon(name, pokemonNameEl, pokemonDexEl, pokemonImgEl, pokemonShinyImgEl, pokemonTypesEl, statsContainer, learnsetContainer) {
+  const requestId = ++activePokemonRequestId;
+  const normalizedName = name.trim().toLowerCase();
+
   try {
     let data;
     let species;
 
-    // First attempt: direct pokemon fetch
-    const response = await fetch(`${API_BASE}/pokemon/${name.toLowerCase()}`);
+    const pokemonUrl = `${API_BASE}/pokemon/${normalizedName}`;
+    data = await fetchJson(pokemonUrl);
 
-    if (response.ok) {
-      data = await response.json();
-
-      const speciesRes = await fetch(data.species.url);
-      species = await speciesRes.json();
+    if (data) {
+      species = await fetchJson(data.species.url);
     } else {
-      // Fallback: try species endpoint
-      const speciesRes = await fetch(`${API_BASE}/pokemon-species/${name.toLowerCase()}`);
-      if (!speciesRes.ok) throw new Error("Pokémon not found");
+      const speciesUrl = `${API_BASE}/pokemon-species/${normalizedName}`;
+      species = await fetchJson(speciesUrl);
+      if (!species) throw new Error("Pokémon not found");
 
-      species = await speciesRes.json();
-
-      // Load default form from species
       const defaultVariety = species.varieties.find(v => v.is_default);
-      const pokemonRes = await fetch(defaultVariety.pokemon.url);
-      data = await pokemonRes.json();
+      if (!defaultVariety) throw new Error("Pokémon form not found");
+      data = await fetchJson(defaultVariety.pokemon.url);
     }
 
-    renderPokemon(
+    if (!data || !species || requestId !== activePokemonRequestId) return;
+
+    await renderPokemon(
       data,
       species,
       pokemonNameEl,
@@ -247,8 +311,8 @@ async function loadPokemon(name, pokemonNameEl, pokemonDexEl, pokemonImgEl, poke
       statsContainer,
       learnsetContainer
     );
-
   } catch (err) {
+    if (requestId !== activePokemonRequestId) return;
     alert("Pokémon not found");
     console.error(err);
   }
@@ -264,12 +328,11 @@ async function navigateDex(direction) {
   if (newDex < 1) return;
 
   try {
-    const res = await fetch(`${API_BASE}/pokemon/${newDex}`);
-    if (!res.ok) return;
+    const data = await fetchJson(`${API_BASE}/pokemon/${newDex}`);
+    if (!data) return;
 
-    const data = await res.json();
-    const speciesRes = await fetch(data.species.url);
-    const species = await speciesRes.json();
+    const species = await fetchJson(data.species.url);
+    if (!species) return;
 
     const pokemonNameEl = document.getElementById("pokemonName");
     const pokemonImgEl = document.getElementById("pokemonImage");
@@ -278,7 +341,7 @@ async function navigateDex(direction) {
     const statsContainer = document.getElementById("statsList");
     const learnsetContainer = document.getElementById("learnsetTable");
 
-    renderPokemon(
+    await renderPokemon(
       data,
       species,
       pokemonNameEl,
@@ -289,7 +352,6 @@ async function navigateDex(direction) {
       statsContainer,
       learnsetContainer
     );
-
   } catch (err) {
     console.error("Dex navigation error:", err);
   }
@@ -297,27 +359,73 @@ async function navigateDex(direction) {
 
 
 // ===============================
+// IMAGE PRELOADING
+// ===============================
+function preloadImage(url) {
+  if (!url) return Promise.resolve(null);
+
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => resolve(url);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+async function preloadPokemonArtwork(data) {
+  const artwork = data?.sprites?.other?.["official-artwork"];
+  if (!artwork) return [];
+
+  const urls = [artwork.front_default, artwork.front_shiny].filter(Boolean);
+  if (urls.length === 0) return [];
+
+  return Promise.allSettled(urls.map(url => preloadImage(url)));
+}
+
+async function preloadAlternateFormArtwork(species) {
+  if (!species?.varieties?.length) return [];
+
+  const varietyPromises = species.varieties.map(async variety => {
+    if (!variety?.pokemon?.url) return null;
+
+    const varietyData = await fetchJson(variety.pokemon.url);
+    if (!varietyData) return null;
+
+    return preloadPokemonArtwork(varietyData);
+  });
+
+  return Promise.allSettled(varietyPromises);
+}
+
+// ===============================
 // RENDER POKÉMON
 // ===============================
-function renderPokemon(data, species, pokemonNameEl, pokemonDexEl, pokemonImgEl, pokemonShinyImgEl, pokemonTypesEl, statsContainer, learnsetContainer) {
-  // Name & image
+async function renderPokemon(data, species, pokemonNameEl, pokemonDexEl, pokemonImgEl, pokemonShinyImgEl, pokemonTypesEl, statsContainer, learnsetContainer) {
   pokemonNameEl.textContent = capitalize(data.name);
-  pokemonImgEl.src = data.sprites.other["official-artwork"].front_default;
-  pokemonShinyImgEl.src = data.sprites.other["official-artwork"].front_shiny;
 
-  // ===============================
-  // RENDER FORMS
-  // ===============================
+  const artwork = data.sprites?.other?.["official-artwork"] || {};
+  const defaultImageUrl = artwork.front_default;
+  const shinyImageUrl = artwork.front_shiny;
+
+  if (defaultImageUrl) {
+    pokemonImgEl.src = defaultImageUrl;
+  }
+
+  if (shinyImageUrl) {
+    pokemonShinyImgEl.src = shinyImageUrl;
+  }
+
+  void preloadPokemonArtwork(data);
+  void preloadAlternateFormArtwork(species);
+
   const formsContainer = document.getElementById("pokemonForms");
 
   if (formsContainer && species.varieties.length > 1) {
-    formsContainer.innerHTML = "";
+    const fragment = document.createDocumentFragment();
 
     species.varieties.forEach(v => {
       const btn = document.createElement("button");
       btn.classList.add("form-button", "neon-text");
-
-      // Clean up name display
       btn.textContent = capitalize(
         v.pokemon.name
           .replace(species.name + "-", "")
@@ -337,86 +445,88 @@ function renderPokemon(data, species, pokemonNameEl, pokemonDexEl, pokemonImgEl,
         );
       });
 
-      formsContainer.appendChild(btn);
+      fragment.appendChild(btn);
     });
+
+    formsContainer.replaceChildren(fragment);
   } else if (formsContainer) {
-    formsContainer.innerHTML = "";
+    formsContainer.replaceChildren();
   }
 
-  // Types
-  pokemonTypesEl.innerHTML = "";
+  const typesFragment = document.createDocumentFragment();
   data.types.forEach(t => {
     const span = document.createElement("span");
     span.className = `type ${t.type.name}`;
     span.textContent = capitalize(t.type.name);
-    pokemonTypesEl.appendChild(span);
+    typesFragment.appendChild(span);
   });
+  pokemonTypesEl.replaceChildren(typesFragment);
 
-  // Type effectiveness calculator
   const pokemonTypes = data.types.map(t => t.type.name);
   renderTypeCalculator(pokemonTypes);
-
 
   if (pokemonDexEl) {
     pokemonDexEl.textContent = `#${species.id.toString().padStart(4, "0")}`;
   }
 
-
-  // Stats
   renderStats(data.stats, statsContainer);
 
-  // Abilities
   const abilitiesEl = document.getElementById("pokemonAbilities");
   if (abilitiesEl) {
-    abilitiesEl.innerHTML = "";
-    data.abilities.forEach(async (a) => {
-      const abilityName = capitalize(a.ability.name);
-      const span = document.createElement("span");
-      span.className = "ability";
-      span.textContent = abilityName;
+    const abilityNodes = await Promise.all(
+      data.abilities.map(async (abilityEntry) => {
+        const span = document.createElement("span");
+        span.className = "ability";
+        span.textContent = capitalize(abilityEntry.ability.name);
 
-      try {
-        const res = await fetch(a.ability.url);
-        const abilityData = await res.json();
-        const effectEntry = abilityData.effect_entries.find(entry => entry.language.name === "en");
-        span.dataset.tooltip = effectEntry ? effectEntry.effect : "No description available";
-      } catch (err) {
-        console.error("Ability fetch error:", err);
-        span.dataset.tooltip = "Description unavailable";
-      }
+        try {
+          const abilityData = await fetchJson(abilityEntry.ability.url);
+          const effectEntry = abilityData?.effect_entries?.find(entry => entry.language.name === "en");
+          span.dataset.tooltip = effectEntry ? effectEntry.effect : "No description available";
+        } catch (err) {
+          console.error("Ability fetch error:", err);
+          span.dataset.tooltip = "Description unavailable";
+        }
 
-      abilitiesEl.appendChild(span);
-      if (a !== data.abilities[data.abilities.length - 1]) {
-        abilitiesEl.appendChild(document.createTextNode(", "));
+        return span;
+      })
+    );
+
+    const abilitiesFragment = document.createDocumentFragment();
+    abilityNodes.forEach((span, index) => {
+      abilitiesFragment.appendChild(span);
+      if (index < abilityNodes.length - 1) {
+        abilitiesFragment.appendChild(document.createTextNode(", "));
       }
     });
+    abilitiesEl.replaceChildren(abilitiesFragment);
   }
 
-  // Learnset
   renderLearnset(data.moves, learnsetContainer);
 
-  // Other moves
   const otherMovesContainer = document.getElementById("otherMovesTable");
   if (otherMovesContainer) {
     renderOtherMoves(data.moves, otherMovesContainer);
   }
 
-  // Flavor text
   const flavor = species.flavor_text_entries.find(e => e.language.name === "en");
   const flavorTextEl = document.getElementById("flavorText");
   if (flavorTextEl) flavorTextEl.textContent = flavor ? flavor.flavor_text.replace(/\f/g, " ") : "";
+
+  if (species.id) {
+    void preloadAdjacentPokemon(species.id);
+  }
 }
 
 // ===============================
 // RENDER STATS
 // ===============================
 function renderStats(stats, container) {
-  container.innerHTML = "";
-
+  const fragment = document.createDocumentFragment();
   let total = 0;
 
   stats.forEach(stat => {
-    total += stat.base_stat; // accumulate total
+    total += stat.base_stat;
 
     const li = document.createElement("li");
     li.className = "stat-row";
@@ -454,17 +564,13 @@ function renderStats(stats, container) {
 
     barContainer.appendChild(bar);
     li.append(label, value, barContainer);
-    container.appendChild(li);
+    fragment.appendChild(li);
   });
 
-  //BST Total
   const MAX_BST = 720;
-
-  // Normalize total to a 0–255 scale for coloring
   const normalized = (total / 6) * 1.2;
   const bstColor = getStatColor(normalized);
 
-  // Row
   const totalLi = document.createElement("li");
   totalLi.className = "stat-row";
   totalLi.style.display = "flex";
@@ -474,7 +580,6 @@ function renderStats(stats, container) {
   totalLi.style.borderTop = "1px solid rgba(255,255,255,0.2)";
   totalLi.style.paddingTop = "6px";
 
-  // Label
   const totalLabel = document.createElement("span");
   totalLabel.textContent = "Base Stat Total";
   totalLabel.style.fontWeight = "bold";
@@ -482,7 +587,6 @@ function renderStats(stats, container) {
   totalLabel.style.color = bstColor;
   totalLabel.style.textShadow = `0 0 1px ${bstColor}, 0 0 1px ${bstColor}`;
 
-  // Value
   const totalValue = document.createElement("span");
   totalValue.textContent = total;
   totalValue.style.width = "40px";
@@ -491,12 +595,10 @@ function renderStats(stats, container) {
   totalValue.style.color = bstColor;
   totalValue.style.textShadow = `0 0 1px ${bstColor}, 0 0 1px ${bstColor}`;
 
-  // Bar container
   const totalBarContainer = document.createElement("div");
   totalBarContainer.className = "stat-bar-container";
   totalBarContainer.style.flexGrow = "1";
 
-  // Bar
   const totalBar = document.createElement("div");
   totalBar.className = "stat-bar";
   const totalPercent = Math.min((total / MAX_BST) * 100, 100);
@@ -504,10 +606,11 @@ function renderStats(stats, container) {
   totalBar.style.background = bstColor;
   totalBar.style.boxShadow = `0 0 6px ${bstColor}`;
 
-  // Assemble
   totalBarContainer.appendChild(totalBar);
   totalLi.append(totalLabel, totalValue, totalBarContainer);
-  container.appendChild(totalLi);
+  fragment.appendChild(totalLi);
+
+  container.replaceChildren(fragment);
 }
 
 
@@ -515,7 +618,8 @@ function renderStats(stats, container) {
 // RENDER LEARNSET
 // ===============================
 function renderLearnset(moves, container) {
-  container.innerHTML = "";
+  const fragment = document.createDocumentFragment();
+
   moves
     .map(m => {
       const levelUp = m.version_group_details.find(d => d.move_learn_method.name === "level-up");
@@ -536,17 +640,16 @@ function renderLearnset(moves, container) {
       attachMoveTooltip(moveTd, m.url);
 
       row.append(levelTd, moveTd);
-
-      container.appendChild(row);
+      fragment.appendChild(row);
     });
+
+  container.replaceChildren(fragment);
 }
 
 // ===============================
 // RENDER MoveSET
 // ===============================
 function renderOtherMoves(moves, container) {
-  container.innerHTML = "";
-
   const seen = new Set();
   const collected = [];
 
@@ -566,7 +669,6 @@ function renderOtherMoves(moves, container) {
     });
   });
 
-  // Sort alphabetically by method first, then move name
   collected.sort((a, b) => {
     if (a.method !== b.method) {
       return a.method.localeCompare(b.method);
@@ -574,14 +676,12 @@ function renderOtherMoves(moves, container) {
     return a.moveName.localeCompare(b.moveName);
   });
 
-  // Render after sorting
+  const fragment = document.createDocumentFragment();
   collected.forEach(entry => {
     const row = document.createElement("tr");
 
     const methodTd = document.createElement("td");
-    methodTd.textContent = capitalize(
-      entry.method.replace("-", " ")
-    );
+    methodTd.textContent = capitalize(entry.method.replace("-", " "));
     methodTd.classList.add("move-method");
 
     const moveTd = document.createElement("td");
@@ -591,73 +691,71 @@ function renderOtherMoves(moves, container) {
     attachMoveTooltip(moveTd, entry.moveUrl);
 
     row.append(methodTd, moveTd);
-    container.appendChild(row);
+    fragment.appendChild(row);
   });
+
+  container.replaceChildren(fragment);
 }
 
 // ===============================
 // Hover moves
 // ===============================
+async function preloadAdjacentPokemon(currentDex) {
+  const neighbors = [currentDex - 1, currentDex + 1].filter(dex => Number.isInteger(dex) && dex > 0);
+
+  await Promise.allSettled(neighbors.map(async dex => {
+    const data = await fetchJson(`${API_BASE}/pokemon/${dex}`);
+    if (data) {
+      await preloadPokemonArtwork(data);
+    }
+  }));
+}
+
 async function attachMoveTooltip(cell, moveUrl) {
+  if (moveCache.has(moveUrl)) {
+    cell.dataset.tooltip = buildMoveTooltip(moveCache.get(moveUrl));
+    return;
+  }
+
   cell.addEventListener("mouseenter", async () => {
     try {
       cell.dataset.tooltip = "Loading...";
-
-      const res = await fetch(moveUrl);
-      const moveData = await res.json();
-
-      const power = moveData.power ?? "—";
-      const accuracy = moveData.accuracy ?? "—";
-      const type = capitalize(moveData.type?.name ?? "unknown");
-      const damageClass = capitalize(
-        moveData.damage_class?.name ?? "status"
-      );
-
-      // -----------------------------
-      // Get English Effect Text
-      // -----------------------------
-      const effectEntry = moveData.effect_entries?.find(
-        e => e.language.name === "en"
-      );
-
-      let description =
-        effectEntry?.effect ||
-        effectEntry?.short_effect ||
-        "No description available.";
-
-      // -----------------------------
-      // Replace ALL effect chance placeholders
-      // Handles:
-      // $effect_chance$
-      // $effect_chance%
-      // $effect_chance$%
-      // -----------------------------
-      description = description.replace(
-        /\$effect_chance\$?%?/g,
-        moveData.effect_chance != null
-          ? `${moveData.effect_chance}%`
-          : ""
-      );
-
-      // Clean up extra spaces left behind
-      description = description.replace(/\s{2,}/g, " ").trim();
-
-      // -----------------------------
-      // Build Tooltip
-      // -----------------------------
-      cell.dataset.tooltip = `
-${type} | ${damageClass}
-Power: ${power}
-Accuracy: ${accuracy}
-
-${description}
-      `.trim();
-
+      const moveData = await fetchJson(moveUrl);
+      if (!moveData) throw new Error("Move data unavailable");
+      cell.dataset.tooltip = buildMoveTooltip(moveData);
     } catch (err) {
       console.error("Tooltip error:", err);
       cell.dataset.tooltip = "Move data unavailable.";
     }
   });
+}
+
+function buildMoveTooltip(moveData) {
+  const power = moveData.power ?? "—";
+  const accuracy = moveData.accuracy ?? "—";
+  const type = capitalize(moveData.type?.name ?? "unknown");
+  const damageClass = capitalize(moveData.damage_class?.name ?? "status");
+
+  const effectEntry = moveData.effect_entries?.find(e => e.language.name === "en");
+  let description =
+    effectEntry?.effect ||
+    effectEntry?.short_effect ||
+    "No description available.";
+
+  description = description.replace(
+    /\$effect_chance\$?%?/g,
+    moveData.effect_chance != null ? `${moveData.effect_chance}%` : ""
+  );
+
+  description = description.replace(/\s{2,}/g, " ").trim();
+
+  return `
+${type} | ${damageClass}
+Power: ${power}
+Accuracy: ${accuracy}
+
+${description}
+  `.trim();
 }
 
 
