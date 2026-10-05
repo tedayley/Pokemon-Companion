@@ -11,6 +11,10 @@
 
 <header>
   <h1>Pokémon Companion</h1>
+  <div class="history-controls" aria-label="Pokémon viewing history">
+    <button id="previousViewed" class="history-button" type="button" aria-label="Previously viewed Pokémon" title="Previously viewed" disabled>←</button>
+    <button id="nextViewed" class="history-button" type="button" aria-label="Next viewed Pokémon" title="Next viewed" disabled>→</button>
+  </div>
   <div class="search-container">
     <input
       type="text"
@@ -62,6 +66,10 @@
       <p><strong>Abilities:</strong> <span id="pokemonAbilities"></span></p>
       <p id="flavorText"></p>
       <div id="calculator"></div>
+      <section id="evolutionSection" class="evolution-section" hidden aria-labelledby="evolutionHeading">
+        <h3 id="evolutionHeading">Evolution line</h3>
+        <div id="evolutionStages" class="evolution-stages"></div>
+      </section>
     </div>
 
     <div id="stats" class="tab-content">

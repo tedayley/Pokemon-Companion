@@ -51,6 +51,16 @@
     padding: 0.5rem 1rem; /* slightly taller input/button */
   }
 
+  header .history-controls {
+    justify-content: center;
+  }
+
+  header .history-button {
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+  }
+
   /* =========================
      TABS (stacked for portrait)
   ========================= */

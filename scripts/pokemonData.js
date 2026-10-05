@@ -8,20 +8,26 @@ let pokemonCache = [];
 let pokemonCacheNormalized = [];
 const pokemonDataCache = new Map();
 const speciesCache = new Map();
+const evolutionChainCache = new Map();
 const abilityCache = new Map();
 const moveCache = new Map();
 let activePokemonRequestId = 0;
+let evolutionRenderRequestId = 0;
 let suggestionTimer = null;
 let dropdownFrame = null;
+let viewedPokemon = [];
+let viewedPokemonIndex = -1;
 
 const CACHE_LIMITS = {
   pokemonData: 80,
   species: 40,
+  evolutionChain: 40,
   ability: 60,
   move: 60
 };
 
 function getCacheForUrl(url) {
+  if (url.includes("/evolution-chain/")) return { cache: evolutionChainCache, limit: CACHE_LIMITS.evolutionChain };
   if (url.includes("/pokemon-species")) return { cache: speciesCache, limit: CACHE_LIMITS.species };
   if (url.includes("/ability/")) return { cache: abilityCache, limit: CACHE_LIMITS.ability };
   if (url.includes("/move/")) return { cache: moveCache, limit: CACHE_LIMITS.move };
@@ -86,6 +92,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const learnsetContainer = document.getElementById("learnsetTable");
   const prevBtn = document.getElementById("prevDex");
   const nextBtn = document.getElementById("nextDex");
+  const previousViewedBtn = document.getElementById("previousViewed");
+  const nextViewedBtn = document.getElementById("nextViewed");
 
   // Load Pokémon list for autocomplete
   await loadPokemonList();
@@ -123,6 +131,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   nextBtn?.addEventListener("click", () => {
     navigateDex(1);
   });
+
+  previousViewedBtn?.addEventListener("click", () => navigatePokemonHistory(-1));
+  nextViewedBtn?.addEventListener("click", () => navigatePokemonHistory(1));
 });
 
 // ===============================
@@ -147,6 +158,51 @@ async function loadPokemonList() {
 
 function normalizeName(name) {
   return String(name).toLowerCase().replace(/[\s-]/g, "");
+}
+
+function boundedEditDistance(left, right, limit) {
+  if (Math.abs(left.length - right.length) > limit) return limit + 1;
+
+  let previousRow = Array.from({ length: right.length + 1 }, (_, index) => index);
+
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex++) {
+    const currentRow = Array(right.length + 1).fill(limit + 1);
+    currentRow[0] = leftIndex;
+    const start = Math.max(1, leftIndex - limit);
+    const end = Math.min(right.length, leftIndex + limit);
+    let rowMinimum = currentRow[0];
+
+    for (let rightIndex = start; rightIndex <= end; rightIndex++) {
+      const substitutionCost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
+      currentRow[rightIndex] = Math.min(
+        previousRow[rightIndex] + 1,
+        currentRow[rightIndex - 1] + 1,
+        previousRow[rightIndex - 1] + substitutionCost
+      );
+      rowMinimum = Math.min(rowMinimum, currentRow[rightIndex]);
+    }
+
+    if (rowMinimum > limit) return limit + 1;
+    previousRow = currentRow;
+  }
+
+  return previousRow[right.length];
+}
+
+function boundedPrefixEditDistance(query, name, limit) {
+  const shortestPrefixLength = Math.max(1, query.length - limit);
+  const longestPrefixLength = Math.min(name.length, query.length + limit);
+  let closestDistance = limit + 1;
+
+  for (let prefixLength = shortestPrefixLength; prefixLength <= longestPrefixLength; prefixLength++) {
+    closestDistance = Math.min(
+      closestDistance,
+      boundedEditDistance(query, name.slice(0, prefixLength), limit)
+    );
+    if (closestDistance === 0) break;
+  }
+
+  return closestDistance;
 }
 
 // ===============================
@@ -198,11 +254,31 @@ function setupSearch(searchInput, suggestionsBox, pokemonNameEl, pokemonDexEl, p
     }
 
     const normalizedQuery = normalizeName(query);
-    const matches = pokemonCacheNormalized
-      .map((normalizedName, index) => ({ normalizedName, name: pokemonCache[index] }))
-      .filter(entry => entry.normalizedName.includes(normalizedQuery))
-      .slice(0, 8)
-      .map(entry => entry.name);
+    const matches = [];
+    for (let index = 0; index < pokemonCacheNormalized.length && matches.length < 8; index++) {
+      if (pokemonCacheNormalized[index].includes(normalizedQuery)) {
+        matches.push(pokemonCache[index]);
+      }
+    }
+
+    let isFuzzyMatch = false;
+    if (matches.length === 0) {
+      const closeMatches = [];
+      for (let index = 0; index < pokemonCacheNormalized.length; index++) {
+        const normalizedName = pokemonCacheNormalized[index];
+        const distance = boundedPrefixEditDistance(normalizedQuery, normalizedName, 2);
+        if (distance <= 2) {
+          closeMatches.push({ name: pokemonCache[index], distance });
+        }
+      }
+
+      closeMatches.sort((left, right) =>
+        left.distance - right.distance ||
+        left.name.localeCompare(right.name)
+      );
+      matches.push(...closeMatches.slice(0, 8).map(match => match.name));
+      isFuzzyMatch = matches.length > 0;
+    }
 
     if (matches.length === 0) {
       suggestionsBox.style.display = "none";
@@ -210,6 +286,8 @@ function setupSearch(searchInput, suggestionsBox, pokemonNameEl, pokemonDexEl, p
     }
 
     const fragment = document.createDocumentFragment();
+    suggestionsBox.dataset.matchType = isFuzzyMatch ? "fuzzy" : "direct";
+
     matches.forEach((name, index) => {
       const div = document.createElement("div");
       div.className = "suggestion";
@@ -255,6 +333,8 @@ function setupSearch(searchInput, suggestionsBox, pokemonNameEl, pokemonDexEl, p
       e.preventDefault();
       if (selectedIndex >= 0 && selectedIndex < items.length) {
         selectSuggestion(items[selectedIndex].dataset.name);
+      } else if (items.length > 0 && suggestionsBox.dataset.matchType === "fuzzy") {
+        selectSuggestion(items[0].dataset.name);
       } else if (searchInput.value.trim() !== "") {
         loadPokemon(searchInput.value.toLowerCase(), pokemonNameEl, pokemonDexEl, pokemonImgEl, pokemonShinyImgEl, pokemonTypesEl, statsContainer, learnsetContainer);
         suggestionsBox.style.display = "none";
@@ -275,7 +355,7 @@ function setupSearch(searchInput, suggestionsBox, pokemonNameEl, pokemonDexEl, p
 // ===============================
 // LOAD POKÉMON DATA FROM API
 // ===============================
-async function loadPokemon(name, pokemonNameEl, pokemonDexEl, pokemonImgEl, pokemonShinyImgEl, pokemonTypesEl, statsContainer, learnsetContainer) {
+async function loadPokemon(name, pokemonNameEl, pokemonDexEl, pokemonImgEl, pokemonShinyImgEl, pokemonTypesEl, statsContainer, learnsetContainer, recordHistory = true) {
   const requestId = ++activePokemonRequestId;
   const normalizedName = name.trim().toLowerCase();
 
@@ -299,6 +379,7 @@ async function loadPokemon(name, pokemonNameEl, pokemonDexEl, pokemonImgEl, poke
     }
 
     if (!data || !species || requestId !== activePokemonRequestId) return;
+    if (recordHistory) recordViewedPokemon(data.name);
 
     await renderPokemon(
       data,
@@ -309,13 +390,49 @@ async function loadPokemon(name, pokemonNameEl, pokemonDexEl, pokemonImgEl, poke
       pokemonShinyImgEl,
       pokemonTypesEl,
       statsContainer,
-      learnsetContainer
+      learnsetContainer,
+      requestId
     );
   } catch (err) {
     if (requestId !== activePokemonRequestId) return;
     alert("Pokémon not found");
     console.error(err);
   }
+}
+
+function recordViewedPokemon(name) {
+  if (viewedPokemon[viewedPokemonIndex] === name) return;
+
+  viewedPokemon = viewedPokemon.slice(0, viewedPokemonIndex + 1);
+  viewedPokemon.push(name);
+  viewedPokemonIndex = viewedPokemon.length - 1;
+  updatePokemonHistoryButtons();
+}
+
+function updatePokemonHistoryButtons() {
+  const previousViewedBtn = document.getElementById("previousViewed");
+  const nextViewedBtn = document.getElementById("nextViewed");
+  if (previousViewedBtn) previousViewedBtn.disabled = viewedPokemonIndex <= 0;
+  if (nextViewedBtn) nextViewedBtn.disabled = viewedPokemonIndex >= viewedPokemon.length - 1;
+}
+
+function navigatePokemonHistory(direction) {
+  const nextIndex = viewedPokemonIndex + direction;
+  if (nextIndex < 0 || nextIndex >= viewedPokemon.length) return;
+
+  viewedPokemonIndex = nextIndex;
+  updatePokemonHistoryButtons();
+  loadPokemon(
+    viewedPokemon[nextIndex],
+    document.getElementById("pokemonName"),
+    document.getElementById("dexNumber"),
+    document.getElementById("pokemonImage"),
+    document.getElementById("pokemonShinyImage"),
+    document.getElementById("pokemonTypes"),
+    document.getElementById("statsList"),
+    document.getElementById("learnsetTable"),
+    false
+  );
 }
 
 async function navigateDex(direction) {
@@ -326,35 +443,16 @@ async function navigateDex(direction) {
   const newDex = current + direction;
 
   if (newDex < 1) return;
-
-  try {
-    const data = await fetchJson(`${API_BASE}/pokemon/${newDex}`);
-    if (!data) return;
-
-    const species = await fetchJson(data.species.url);
-    if (!species) return;
-
-    const pokemonNameEl = document.getElementById("pokemonName");
-    const pokemonImgEl = document.getElementById("pokemonImage");
-    const pokemonShinyImgEl = document.getElementById("pokemonShinyImage");
-    const pokemonTypesEl = document.getElementById("pokemonTypes");
-    const statsContainer = document.getElementById("statsList");
-    const learnsetContainer = document.getElementById("learnsetTable");
-
-    await renderPokemon(
-      data,
-      species,
-      pokemonNameEl,
-      dexText,
-      pokemonImgEl,
-      pokemonShinyImgEl,
-      pokemonTypesEl,
-      statsContainer,
-      learnsetContainer
-    );
-  } catch (err) {
-    console.error("Dex navigation error:", err);
-  }
+  loadPokemon(
+    String(newDex),
+    document.getElementById("pokemonName"),
+    dexText,
+    document.getElementById("pokemonImage"),
+    document.getElementById("pokemonShinyImage"),
+    document.getElementById("pokemonTypes"),
+    document.getElementById("statsList"),
+    document.getElementById("learnsetTable")
+  );
 }
 
 
@@ -400,7 +498,7 @@ async function preloadAlternateFormArtwork(species) {
 // ===============================
 // RENDER POKÉMON
 // ===============================
-async function renderPokemon(data, species, pokemonNameEl, pokemonDexEl, pokemonImgEl, pokemonShinyImgEl, pokemonTypesEl, statsContainer, learnsetContainer) {
+async function renderPokemon(data, species, pokemonNameEl, pokemonDexEl, pokemonImgEl, pokemonShinyImgEl, pokemonTypesEl, statsContainer, learnsetContainer, requestId) {
   pokemonNameEl.textContent = capitalize(data.name);
 
   const artwork = data.sprites?.other?.["official-artwork"] || {};
@@ -515,6 +613,87 @@ async function renderPokemon(data, species, pokemonNameEl, pokemonDexEl, pokemon
 
   if (species.id) {
     void preloadAdjacentPokemon(species.id);
+  }
+  if (requestId === activePokemonRequestId) {
+    void renderEvolutionLine(species, requestId);
+  }
+}
+
+function getEvolutionStages(rootEvolution) {
+  const stages = [];
+  let currentStage = rootEvolution ? [rootEvolution] : [];
+
+  while (currentStage.length > 0) {
+    stages.push(currentStage);
+    currentStage = currentStage.flatMap(evolution => evolution.evolves_to || []);
+  }
+
+  return stages;
+}
+
+async function renderEvolutionLine(species, pokemonRequestId) {
+  const section = document.getElementById("evolutionSection");
+  const stagesContainer = document.getElementById("evolutionStages");
+  if (!section || !stagesContainer) return;
+
+  const requestId = ++evolutionRenderRequestId;
+  section.hidden = true;
+  stagesContainer.replaceChildren();
+
+  if (!species.evolution_chain?.url) return;
+
+  try {
+    const evolutionData = await fetchJson(species.evolution_chain.url);
+    if (requestId !== evolutionRenderRequestId || pokemonRequestId !== activePokemonRequestId || !evolutionData?.chain) return;
+
+    const stages = getEvolutionStages(evolutionData.chain);
+    if (stages.reduce((count, stage) => count + stage.length, 0) < 2) return;
+
+    const fragment = document.createDocumentFragment();
+    stages.forEach((stage, index) => {
+      const stageRow = document.createElement("div");
+      stageRow.className = "evolution-stage";
+
+      const stageLabel = document.createElement("span");
+      stageLabel.className = "evolution-stage-label";
+      stageLabel.textContent = `Stage ${index + 1}`;
+      stageRow.appendChild(stageLabel);
+
+      stage.forEach(evolution => {
+        const name = evolution.species.name;
+        const button = document.createElement("button");
+        const isCurrentSpecies = name === species.name;
+        button.type = "button";
+        button.className = `evolution-button${isCurrentSpecies ? " active-evolution" : ""}`;
+        button.textContent = capitalize(name.replace(/-/g, " "));
+        if (isCurrentSpecies) {
+          button.disabled = true;
+          button.setAttribute("aria-current", "true");
+        } else {
+          button.addEventListener("click", () => {
+            loadPokemon(
+              name,
+              document.getElementById("pokemonName"),
+              document.getElementById("dexNumber"),
+              document.getElementById("pokemonImage"),
+              document.getElementById("pokemonShinyImage"),
+              document.getElementById("pokemonTypes"),
+              document.getElementById("statsList"),
+              document.getElementById("learnsetTable")
+            );
+          });
+        }
+        stageRow.appendChild(button);
+      });
+
+      fragment.appendChild(stageRow);
+    });
+
+    if (requestId !== evolutionRenderRequestId) return;
+    stagesContainer.replaceChildren(fragment);
+    section.hidden = false;
+  } catch (err) {
+    console.error("Evolution chain load error:", err);
   }
 }
 
@@ -706,6 +885,7 @@ async function preloadAdjacentPokemon(currentDex) {
   await Promise.allSettled(neighbors.map(async dex => {
     const data = await fetchJson(`${API_BASE}/pokemon/${dex}`);
     if (data) {
+      await fetchJson(data.species.url);
       await preloadPokemonArtwork(data);
     }
   }));
