@@ -19,6 +19,7 @@ let viewedPokemon = [];
 let viewedPokemonIndex = -1;
 
 const CACHE_LIMITS = {
+  pokemonHistory: 10,
   pokemonData: 80,
   species: 40,
   evolutionChain: 40,
@@ -405,6 +406,7 @@ function recordViewedPokemon(name) {
 
   viewedPokemon = viewedPokemon.slice(0, viewedPokemonIndex + 1);
   viewedPokemon.push(name);
+  viewedPokemon = viewedPokemon.slice(-CACHE_LIMITS.pokemonHistory);
   viewedPokemonIndex = viewedPokemon.length - 1;
   updatePokemonHistoryButtons();
 }
