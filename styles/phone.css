@@ -4,7 +4,7 @@
 @media (orientation: portrait) {
 
   html {
-    font-size: 200%; /* 20% larger than desktop/base font size */
+    font-size: 130%;
   }
 
   /* =========================
@@ -23,9 +23,19 @@
     padding: 0.8rem;
   }
 
+  .left {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    gap: 0.5rem;
+  }
+
   .left img {
-    max-width: 100%;         /* ensure image scales down */
-    height: auto;            /* maintain aspect ratio */
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 1;
+    height: auto;
+    object-fit: contain;
   }
 
   /* =========================
@@ -34,6 +44,7 @@
   header {
     flex-direction: column;
     align-items: center;
+    text-align: center;
     padding: 35px 15px; /* taller header, narrower horizontal */
     gap: 1.25rem;       /* slightly more spacing between elements */
   }
@@ -45,10 +56,36 @@
 
   header input,
   header button {
-    width: 85%; /* slightly narrower than full width */
-    max-width: 280px;
-    font-size: 0.95rem;
-    padding: 0.5rem 1rem; /* slightly taller input/button */
+    max-width: none;
+    min-height: 2.8rem;
+    font-size: 1rem;
+    padding: 0.65rem 1rem;
+  }
+
+  header .search-container,
+  header .name-generator {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    max-width: 420px;
+    margin-inline: auto;
+  }
+
+  header .search-container input {
+    width: 100%;
+    min-height: 3.2rem;
+  }
+
+  header .name-generator button {
+    width: 100%;
+    min-height: 3.2rem;
+    font-size: 1.05rem;
+  }
+
+  header .generated-name {
+    width: 100%;
   }
 
   header .history-controls {
@@ -56,29 +93,172 @@
   }
 
   header .history-button {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 3.2rem;
+    height: 3.2rem;
+    min-height: 3.2rem;
     padding: 0;
   }
 
   /* =========================
-     TABS (stacked for portrait)
+     TABS
   ========================= */
   .tabs {
-    flex-direction: column; /* stack buttons vertically */
-    align-items: stretch;   /* stretch to container width if needed */
-    gap: 0.5rem;            /* spacing between buttons */
-    width: 90%;
-    max-width: 280px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+    align-items: stretch;
+    gap: 0.5rem;
+    width: calc(100% - 2rem);
+    max-width: none;
     margin: 0 auto;
   }
 
   .tab {
-    flex: none;           /* do not stretch */
-    width: 100%;          /* full width of container */
-    text-align: center;   /* center text inside buttons */
-    padding: 0.6rem 0;    /* taller touch targets */
+    width: 100%;
+    min-width: 0;
+    min-height: 3.4rem;
+    padding: 0.65rem 0.4rem;
+    font-size: 1rem;
+    line-height: 1.2;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  button {
+    min-height: 2.8rem;
+  }
+
+  .search-token-chip button {
+    min-height: 1.8rem;
+  }
+
+  #advancedsearch,
+  #advancedSearchForm {
+    min-width: 0;
+  }
+
+  .advanced-search-filters {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.65rem;
+  }
+
+  .advanced-filter-group {
+    padding: 0.65rem;
+  }
+
+  .advanced-filter-group > summary {
+    min-height: 2rem;
+    display: flex;
+    align-items: center;
+    font-size: 1.1rem;
+  }
+
+  .advanced-search-toggles {
+    gap: 0.65rem 0.8rem;
+  }
+
+  .advanced-search-toggles label {
+    min-height: 2rem;
+    font-size: 1rem;
+    white-space: normal;
+  }
+
+  .advanced-search-toggles input,
+  .matching-mode input {
+    width: 1.15rem;
+    height: 1.15rem;
+    flex: 0 0 auto;
+  }
+
+  .filter-group-actions button,
+  .advanced-search-actions button {
+    width: auto;
+    min-height: 2.6rem;
+    max-width: none;
+    padding: 0.5rem 0.8rem;
+  }
+
+  .filter-group-actions button {
     font-size: 0.95rem;
+  }
+
+  .token-picker > input,
+  .stat-range input {
+    width: 100%;
+    max-width: none;
+    min-height: 2.8rem;
+    font-size: 1rem;
+  }
+
+  .advanced-search-field,
+  .matching-mode label,
+  .stat-range label,
+  .advanced-search-hint,
+  .advanced-search-status {
+    font-size: 0.95rem;
+  }
+
+  .token-suggestion,
+  .search-token-chip,
+  .advanced-search-result {
+    font-size: 1rem;
+  }
+
+  .token-suggestions {
+    max-height: 13rem;
+  }
+
+  .token-suggestion {
+    min-height: 2.8rem;
+    padding: 0.65rem;
+  }
+
+  .search-token-chip {
+    min-height: 2.3rem;
+    font-size: 0.85rem;
+  }
+
+  .search-token-chip button {
+    width: 1.8rem;
+    height: 1.8rem;
+    flex-basis: 1.8rem;
+  }
+
+  .matching-mode {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .matching-mode label {
+    min-height: 2.4rem;
+    font-size: 0.9rem;
+  }
+
+  .advanced-stat-list {
+    gap: 0.5rem;
+  }
+
+  .advanced-stat-list details {
+    padding: 0.55rem;
+  }
+
+  .advanced-stat-list summary {
+    min-height: 2rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .stat-range {
+    gap: 0.6rem;
+  }
+
+  .advanced-search-results {
+    grid-template-columns: minmax(0, 1fr);
+    max-height: 55vh;
+  }
+
+  .advanced-search-result {
+    min-height: 4.5rem;
+    font-size: 0.9rem;
   }
 
   /* =========================
@@ -119,6 +299,26 @@
   ========================= */
   table, th, td {
     font-size: 0.85rem;
+  }
+
+  #learnset h2 {
+    font-size: 1.5rem;
+  }
+
+  #learnset table,
+  #learnset th,
+  #learnset td {
+    font-size: 1rem;
+  }
+
+  #advancedsearch h2 {
+    font-size: 1.5rem;
+  }
+
+  .advanced-stat-list summary,
+  .matching-mode legend,
+  .token-suggestion-message {
+    font-size: 0.95rem;
   }
 
   /* =========================

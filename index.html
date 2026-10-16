@@ -35,6 +35,7 @@
   <button class="tab active" data-tab="overview">Overview</button>
   <button class="tab" data-tab="stats">Stats</button>
   <button class="tab" data-tab="learnset">Learnset</button>
+  <button class="tab" data-tab="advancedsearch">Advanced Search</button>
   <button class="tab" data-tab="typechart">Type Chart</button>
   <button class="tab" data-tab="naturechart">Nature Chart</button>
 </nav>
@@ -101,6 +102,137 @@
       </table>
     </div>
 
+    <div id="advancedsearch" class="tab-content">
+      <h2>Advanced Search</h2>
+      <form id="advancedSearchForm">
+        <div class="advanced-search-filters">
+          <details class="advanced-filter-group" open>
+            <summary>Generations</summary>
+            <div class="filter-group-actions">
+              <button type="button" data-check-group="generation" data-check-state="all">All</button>
+              <button type="button" data-check-group="generation" data-check-state="none">None</button>
+            </div>
+            <div class="advanced-search-toggles">
+              <label><input type="checkbox" name="generation" value="1" checked /> Gen 1</label>
+              <label><input type="checkbox" name="generation" value="2" checked /> Gen 2</label>
+              <label><input type="checkbox" name="generation" value="3" checked /> Gen 3</label>
+              <label><input type="checkbox" name="generation" value="4" checked /> Gen 4</label>
+              <label><input type="checkbox" name="generation" value="5" checked /> Gen 5</label>
+              <label><input type="checkbox" name="generation" value="6" checked /> Gen 6</label>
+              <label><input type="checkbox" name="generation" value="7" checked /> Gen 7</label>
+              <label><input type="checkbox" name="generation" value="8" checked /> Gen 8</label>
+              <label><input type="checkbox" name="generation" value="9" checked /> Gen 9</label>
+            </div>
+          </details>
+          <details class="advanced-filter-group" open>
+            <summary>Classification</summary>
+            <div class="filter-group-actions">
+              <button type="button" data-check-group="classification" data-check-state="all">All</button>
+              <button type="button" data-check-group="classification" data-check-state="none">None</button>
+            </div>
+            <div class="advanced-search-toggles">
+              <label><input type="checkbox" name="classification" value="regular" checked /> Regular</label>
+              <label><input type="checkbox" name="classification" value="legendary" checked /> Legendary</label>
+              <label><input type="checkbox" name="classification" value="mythical" checked /> Mythical</label>
+            </div>
+          </details>
+          <details class="advanced-filter-group">
+            <summary>Types</summary>
+            <div class="filter-group-actions">
+              <button type="button" data-check-group="type" data-check-state="all">All</button>
+              <button type="button" data-check-group="type" data-check-state="none">None</button>
+            </div>
+            <div class="advanced-search-toggles">
+              <label><input type="checkbox" name="type" value="normal" checked /> Normal</label>
+              <label><input type="checkbox" name="type" value="fire" checked /> Fire</label>
+              <label><input type="checkbox" name="type" value="water" checked /> Water</label>
+              <label><input type="checkbox" name="type" value="electric" checked /> Electric</label>
+              <label><input type="checkbox" name="type" value="grass" checked /> Grass</label>
+              <label><input type="checkbox" name="type" value="ice" checked /> Ice</label>
+              <label><input type="checkbox" name="type" value="fighting" checked /> Fighting</label>
+              <label><input type="checkbox" name="type" value="poison" checked /> Poison</label>
+              <label><input type="checkbox" name="type" value="ground" checked /> Ground</label>
+              <label><input type="checkbox" name="type" value="flying" checked /> Flying</label>
+              <label><input type="checkbox" name="type" value="psychic" checked /> Psychic</label>
+              <label><input type="checkbox" name="type" value="bug" checked /> Bug</label>
+              <label><input type="checkbox" name="type" value="rock" checked /> Rock</label>
+              <label><input type="checkbox" name="type" value="ghost" checked /> Ghost</label>
+              <label><input type="checkbox" name="type" value="dragon" checked /> Dragon</label>
+              <label><input type="checkbox" name="type" value="dark" checked /> Dark</label>
+              <label><input type="checkbox" name="type" value="steel" checked /> Steel</label>
+              <label><input type="checkbox" name="type" value="fairy" checked /> Fairy</label>
+            </div>
+          </details>
+          <details class="advanced-filter-group">
+            <summary>Moves</summary>
+            <div class="token-picker" data-token-kind="moves">
+              <input id="advancedMoveInput" type="search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="advancedMoveSuggestions" placeholder="Type to add a move..." />
+              <div id="advancedMoveSuggestions" class="token-suggestions" role="listbox" hidden></div>
+              <div id="advancedMoveTokens" class="search-token-list" aria-label="Selected moves"></div>
+            </div>
+            <fieldset class="matching-mode">
+              <legend>Move matching</legend>
+              <label><input type="radio" name="moveMatch" value="any" checked /> Any selected move</label>
+              <label><input type="radio" name="moveMatch" value="all" /> All selected moves</label>
+            </fieldset>
+          </details>
+          <details class="advanced-filter-group">
+            <summary>Abilities</summary>
+            <div class="token-picker" data-token-kind="abilities">
+              <input id="advancedAbilityInput" type="search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="advancedAbilitySuggestions" placeholder="Type to add an ability..." />
+              <div id="advancedAbilitySuggestions" class="token-suggestions" role="listbox" hidden></div>
+              <div id="advancedAbilityTokens" class="search-token-list" aria-label="Selected abilities"></div>
+            </div>
+            <fieldset class="matching-mode">
+              <legend>Ability matching</legend>
+              <label><input type="radio" name="abilityMatch" value="any" checked /> Any selected ability</label>
+              <label><input type="radio" name="abilityMatch" value="all" /> All selected abilities</label>
+            </fieldset>
+          </details>
+          <details class="advanced-filter-group advanced-stat-group">
+            <summary>Base stats</summary>
+            <p class="advanced-search-hint">Open a stat and set a range. Multiple ranges are combined.</p>
+            <div class="advanced-stat-list">
+              <details>
+                <summary>Base stat total</summary>
+                <div class="stat-range"><label>Minimum <input name="stat-total-min" type="number" min="0" max="720" /></label><label>Maximum <input name="stat-total-max" type="number" min="0" max="720" /></label></div>
+              </details>
+              <details>
+                <summary>HP</summary>
+                <div class="stat-range"><label>Minimum <input name="stat-hp-min" type="number" min="0" max="255" /></label><label>Maximum <input name="stat-hp-max" type="number" min="0" max="255" /></label></div>
+              </details>
+              <details>
+                <summary>Attack</summary>
+                <div class="stat-range"><label>Minimum <input name="stat-attack-min" type="number" min="0" max="255" /></label><label>Maximum <input name="stat-attack-max" type="number" min="0" max="255" /></label></div>
+              </details>
+              <details>
+                <summary>Defense</summary>
+                <div class="stat-range"><label>Minimum <input name="stat-defense-min" type="number" min="0" max="255" /></label><label>Maximum <input name="stat-defense-max" type="number" min="0" max="255" /></label></div>
+              </details>
+              <details>
+                <summary>Special Attack</summary>
+                <div class="stat-range"><label>Minimum <input name="stat-special-attack-min" type="number" min="0" max="255" /></label><label>Maximum <input name="stat-special-attack-max" type="number" min="0" max="255" /></label></div>
+              </details>
+              <details>
+                <summary>Special Defense</summary>
+                <div class="stat-range"><label>Minimum <input name="stat-special-defense-min" type="number" min="0" max="255" /></label><label>Maximum <input name="stat-special-defense-max" type="number" min="0" max="255" /></label></div>
+              </details>
+              <details>
+                <summary>Speed</summary>
+                <div class="stat-range"><label>Minimum <input name="stat-speed-min" type="number" min="0" max="255" /></label><label>Maximum <input name="stat-speed-max" type="number" min="0" max="255" /></label></div>
+              </details>
+            </div>
+          </details>
+        </div>
+        <div class="advanced-search-actions">
+          <button type="submit">Find Pokémon</button>
+          <button id="clearAdvancedSearch" type="button">Clear</button>
+        </div>
+        <p id="advancedSearchStatus" class="advanced-search-status" aria-live="polite"></p>
+        <div id="advancedSearchResults" class="advanced-search-results"></div>
+      </form>
+    </div>
+
     <div id="typechart" class="tab-content">
       <h2>Type Chart</h2>
     </div>
@@ -119,6 +251,7 @@
   <script defer src="scripts/main.js"></script>
   <script defer src="scripts/typecalculator.js"></script>
   <script defer src="scripts/pokemonData.js"></script>
+  <script defer src="scripts/advancedSearch.js"></script>
   <script defer src="scripts/script.js"></script>
   <script defer src="scripts/themePulse.js"></script>
   <script defer src="scripts/typechart.js"></script>
