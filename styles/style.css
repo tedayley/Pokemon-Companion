@@ -456,8 +456,24 @@ footer {
 
 .filter-group-actions {
   display: flex;
+  align-items: center;
   gap: 0.4rem;
   margin-bottom: 0.65rem;
+}
+
+.classification-whitelist {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.classification-whitelist input {
+  margin: 0;
+  accent-color: var(--accent);
 }
 
 .filter-group-actions button {

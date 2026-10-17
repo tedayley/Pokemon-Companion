@@ -107,6 +107,7 @@
       <form id="advancedSearchForm">
         <input id="advancedSearchPokemon" name="pokemon" type="hidden" />
         <input id="advancedSearchFormTag" name="formTag" type="hidden" />
+        <input id="advancedSearchClassification" name="classificationTarget" type="hidden" />
         <div class="advanced-search-filters">
           <details class="advanced-filter-group" open>
             <summary>Generations</summary>
@@ -121,22 +122,19 @@
             <div class="filter-group-actions">
               <button type="button" data-check-group="classification" data-check-state="all">All</button>
               <button type="button" data-check-group="classification" data-check-state="none">None</button>
+              <label class="classification-whitelist"><input id="classificationWhitelist" name="includeNormalForms" type="checkbox" checked /> Whitelist</label>
             </div>
             <div class="advanced-search-toggles">
               <label><input type="checkbox" name="classification" value="regular" checked /> Regular</label>
               <label><input type="checkbox" name="classification" value="legendary" checked /> Legendary</label>
               <label><input type="checkbox" name="classification" value="mythical" checked /> Mythical</label>
             </div>
-            <div class="filter-group-actions">
-              <button type="button" data-check-group="variant" data-check-state="all">All variants</button>
-              <button type="button" data-check-group="variant" data-check-state="none">No variants</button>
-            </div>
             <div id="advancedRegionalToggles" class="advanced-search-toggles"></div>
             <div class="advanced-search-toggles">
-              <label><input type="checkbox" name="variant" value="paradox" /> Paradox</label>
-              <label><input type="checkbox" name="variant" value="mega" /> Mega</label>
-              <label><input type="checkbox" name="variant" value="gmax" /> Gigantamax</label>
-              <label><input type="checkbox" name="variant" value="gender" /> Gender</label>
+              <label><input type="checkbox" name="classification" value="paradox" checked /> Paradox</label>
+              <label><input type="checkbox" name="classification" value="mega" checked /> Mega</label>
+              <label><input type="checkbox" name="classification" value="gmax" checked /> Gigantamax</label>
+              <label><input type="checkbox" name="classification" value="gender" checked /> Gender variants</label>
             </div>
           </details>
           <details class="advanced-filter-group">

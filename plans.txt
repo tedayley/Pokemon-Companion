@@ -1,3 +1,5 @@
 upgrade name generator.
 
 add advanced overview that lists egg groups, cry, shape, color, and so forth if pokeapi has those things.
+
+sort moves by type, physical special, utility,

@@ -43,6 +43,7 @@ function loadAdvancedSearchIndex() {
       const variantCounts = new Map();
       const variantTagsByPokemon = new Map();
       const variantExamplesByTag = new Map();
+      const formNamesBySpecies = new Map();
 
       pokemonEntries.forEach(entry => {
         if (speciesNames.has(entry.name)) return;
@@ -50,6 +51,8 @@ function loadAdvancedSearchIndex() {
         if (!speciesName) return;
         const tags = entry.name.slice(speciesName.length + 1).split("-").filter(Boolean);
         variantTagsByPokemon.set(entry.name, tags);
+        if (!formNamesBySpecies.has(speciesName)) formNamesBySpecies.set(speciesName, []);
+        formNamesBySpecies.get(speciesName).push({ name: entry.name, tags });
         const primaryTag = tags[0];
         if (!primaryTag) return;
         variantCounts.set(primaryTag, (variantCounts.get(primaryTag) || 0) + 1);
@@ -85,7 +88,9 @@ function loadAdvancedSearchIndex() {
         pokemonNames: pokemonEntries.map(entry => entry.name),
         generationBySpecies,
         generations: generations.map(({ id }) => ({ id })),
+        classificationCount: 3 + regionalTags.size + 4,
         variantTagsByPokemon,
+        formNamesBySpecies,
         regionalTags,
         megaTags
       };
@@ -109,6 +114,7 @@ function createAdvancedSearchRecord(data, index) {
     speciesId,
     speciesName,
     formTags: variantTags,
+    isDefault: data.is_default,
     generation: index.generationBySpecies.get(speciesName),
     regionalRegions,
     isMega: variantTags.some(tag => index.megaTags.has(tag)),
@@ -382,10 +388,12 @@ function renderAdvancedSearchOptions(index) {
       const label = document.createElement("label");
       const input = document.createElement("input");
       input.type = "checkbox";
-      input.name = "variant";
+      input.name = "classification";
       input.value = `regional:${region}`;
-      input.dataset.searchAttribute = "variant";
-      input.dataset.searchValue = `regional:${region}`;
+      input.checked = true;
+      input.defaultChecked = true;
+      input.dataset.searchAttribute = "classification";
+      input.dataset.searchValue = input.value;
       label.append(input, document.createTextNode(`${capitalize(region)} regional`));
       fragment.appendChild(label);
     });
@@ -426,7 +434,8 @@ function setupAdvancedSearch() {
     return {
       generations: new Set(formData.getAll("generation").map(Number)),
       classifications: new Set(formData.getAll("classification")),
-      variants: new Set(formData.getAll("variant")),
+      classificationTarget: String(formData.get("classificationTarget") || ""),
+      includeNormalForms: formData.get("includeNormalForms") === "on",
       stages: new Set(formData.getAll("stage")),
       pokemon: String(formData.get("pokemon") || ""),
       formTag: String(formData.get("formTag") || ""),
@@ -453,11 +462,11 @@ function setupAdvancedSearch() {
 
   function hasFilters(filters, index, typeCount) {
     return filters.generations.size < index.generations.length ||
-      filters.classifications.size < 3 ||
+      filters.classifications.size < index.classificationCount ||
       (filters.excludeTypes ? filters.types.size > 0 : filters.types.size < typeCount) ||
-      filters.variants.size > 0 ||
       filters.stages.size > 0 || filters.evolutionLength !== null ||
       filters.pokemon !== "" || filters.formTag !== "" ||
+      filters.classificationTarget !== "" ||
       filters.moves.size > 0 || filters.abilities.size > 0 || filters.statRanges.length > 0;
   }
 
@@ -486,31 +495,70 @@ function setupAdvancedSearch() {
     return true;
   }
 
-  async function matchesClassification(record, filters) {
-    if (filters.classifications.size === 3) return true;
-    if (filters.classifications.size === 0) return false;
-
-    if (!record.classification) {
+  async function matchesClassification(record, filters, index) {
+    if (filters.classificationTarget) {
+      const target = filters.classificationTarget;
+      const normalFormMatchesCategory = filters.includeNormalForms && record.isDefault &&
+        (index.formNamesBySpecies.get(record.speciesName) || []).some(form => {
+          if (target.startsWith("regional:")) return form.tags.includes(target.slice("regional:".length));
+          if (target === "mega") return form.tags.some(tag => index.megaTags.has(tag));
+          if (target === "gmax") return form.tags.includes("gmax");
+          if (target === "gender") return form.tags.includes("male") || form.tags.includes("female");
+          return false;
+        });
+      if (target.startsWith("regional:")) return record.regionalRegions.includes(target.slice("regional:".length)) || normalFormMatchesCategory;
+      if (target === "mega") return record.isMega || normalFormMatchesCategory;
+      if (target === "gmax") return record.formTags.includes("gmax") || normalFormMatchesCategory;
+      if (target === "gender") return record.isGenderVariant || normalFormMatchesCategory;
       const species = await getAdvancedSpeciesData(record.speciesId);
-      record.classification = species?.is_legendary ? "legendary" : species?.is_mythical ? "mythical" : species ? "regular" : "unknown";
+      if (target === "paradox") {
+        return species?.genera?.some(entry => entry.language.name === "en" && entry.genus === "Paradox Pokémon") || false;
+      }
+      const classification = species?.is_legendary ? "legendary" : species?.is_mythical ? "mythical" : species ? "regular" : "unknown";
+      record.classification = classification;
+      return classification === target;
     }
-    return filters.classifications.has(record.classification);
-  }
-
-  async function matchesVariant(record, filters) {
-    if (filters.formTag && !record.formTags.includes(filters.formTag)) return false;
-    if (filters.variants.size === 0) return true;
-    const selectedRegions = Array.from(filters.variants)
-      .filter(variant => variant.startsWith("regional:"))
-      .map(variant => variant.slice("regional:".length));
-    if (record.regionalRegions.some(region => selectedRegions.includes(region))) return true;
-    if (filters.variants.has("mega") && record.isMega) return true;
-    if (filters.variants.has("gmax") && record.formTags.includes("gmax")) return true;
-    if (filters.variants.has("gender") && record.isGenderVariant) return true;
-    if (!filters.variants.has("paradox")) return false;
+    if (filters.classifications.size === index.classificationCount) return true;
+    const selectedBaseClassifications = ["regular", "legendary", "mythical"]
+      .filter(classification => filters.classifications.has(classification));
+    if (selectedBaseClassifications.length === 0 || selectedBaseClassifications.length === 3) return true;
 
     const species = await getAdvancedSpeciesData(record.speciesId);
-    return species?.genera?.some(entry => entry.language.name === "en" && entry.genus === "Paradox Pokémon") || false;
+    record.classification = species?.is_legendary ? "legendary" : species?.is_mythical ? "mythical" : species ? "regular" : "unknown";
+    return selectedBaseClassifications.includes(record.classification);
+  }
+
+  async function matchesVariant(record, filters, index) {
+    if (filters.formTag) return record.formTags.includes(filters.formTag);
+    const variantCategories = [
+      ...Array.from(index.regionalTags, region => `regional:${region}`),
+      "paradox", "mega", "gmax", "gender"
+    ];
+    const selectedCategories = variantCategories.filter(category => filters.classifications.has(category));
+    let matchesSelectedVariant = record.regionalRegions.some(region => selectedCategories.includes(`regional:${region}`)) ||
+      (record.isMega && selectedCategories.includes("mega")) ||
+      (record.formTags.includes("gmax") && selectedCategories.includes("gmax")) ||
+      (record.isGenderVariant && selectedCategories.includes("gender"));
+    if (!matchesSelectedVariant && selectedCategories.includes("paradox")) {
+      const species = await getAdvancedSpeciesData(record.speciesId);
+      matchesSelectedVariant = species?.genera?.some(entry => entry.language.name === "en" && entry.genus === "Paradox Pokémon") || false;
+    }
+    if (matchesSelectedVariant) return true;
+    if (!filters.includeNormalForms || !record.isDefault) return false;
+
+    const selectedBaseClassifications = ["regular", "legendary", "mythical"]
+      .filter(classification => filters.classifications.has(classification));
+    if (selectedBaseClassifications.length === 3) return true;
+    if (selectedBaseClassifications.includes(record.classification)) return true;
+
+    const relatedForms = index.formNamesBySpecies.get(record.speciesName) || [];
+    return relatedForms.some(form => {
+      const regions = form.tags.filter(tag => index.regionalTags.has(tag));
+      return regions.some(region => selectedCategories.includes(`regional:${region}`)) ||
+        (form.tags.some(tag => index.megaTags.has(tag)) && selectedCategories.includes("mega")) ||
+        (form.tags.includes("gmax") && selectedCategories.includes("gmax")) ||
+        ((form.tags.includes("male") || form.tags.includes("female")) && selectedCategories.includes("gender"));
+    });
   }
 
   async function matchesStages(record, filters) {
@@ -635,8 +683,8 @@ function setupAdvancedSearch() {
         }
 
         if (matchesRecord(record, filters, index, typeCount) &&
-          await matchesClassification(record, filters) &&
-          await matchesVariant(record, filters) &&
+          await matchesClassification(record, filters, index) &&
+          await matchesVariant(record, filters, index) &&
           await matchesStages(record, filters)) {
           matches.push(record);
         }
@@ -685,6 +733,11 @@ function setupAdvancedSearch() {
     searchTimer = window.setTimeout(runSearch, 350);
   }
 
+  function clearClassificationTarget() {
+    const targetInput = form.querySelector("#advancedSearchClassification");
+    if (targetInput) targetInput.value = "";
+  }
+
   form.addEventListener("submit", event => {
     event.preventDefault();
     hasSearched = true;
@@ -704,11 +757,13 @@ function setupAdvancedSearch() {
     if (evolutionLengthInput) evolutionLengthInput.disabled = !evolutionLengthToggle.checked;
   });
   form.addEventListener("input", event => {
+    if (event.target.name === "classification") clearClassificationTarget();
     if (!isTokenPickerInput(event.target) && !isRandomCountInput(event.target)) {
       scheduleDynamicSearch();
     }
   });
   form.addEventListener("change", event => {
+    if (event.target.name === "classification") clearClassificationTarget();
     if (!isTokenPickerInput(event.target) && !isRandomCountInput(event.target)) {
       scheduleDynamicSearch();
     }
@@ -724,6 +779,7 @@ function setupAdvancedSearch() {
 
   form.querySelectorAll("[data-check-group]").forEach(button => {
     button.addEventListener("click", () => {
+      if (button.dataset.checkGroup === "classification") clearClassificationTarget();
       const checked = button.dataset.checkState === "all";
       form.querySelectorAll(`input[name="${button.dataset.checkGroup}"]`).forEach(input => {
         input.checked = checked;
@@ -741,16 +797,16 @@ function setupAdvancedSearch() {
       const formTags = index.variantTagsByPokemon.get(value) || [];
       const region = formTags.find(tag => index.regionalTags.has(tag));
       if (region) {
-        attribute = "variant";
+        attribute = "classification";
         value = `regional:${region}`;
       } else if (formTags.some(tag => index.megaTags.has(tag))) {
-        attribute = "variant";
+        attribute = "classification";
         value = "mega";
       } else if (formTags.includes("gmax")) {
-        attribute = "variant";
+        attribute = "classification";
         value = "gmax";
       } else if (formTags.includes("male") || formTags.includes("female")) {
-        attribute = "variant";
+        attribute = "classification";
         value = "gender";
       } else if (formTags.length > 0) {
         attribute = "formTag";
@@ -763,7 +819,6 @@ function setupAdvancedSearch() {
     const filterNames = {
       type: "type",
       stage: "stage",
-      variant: "variant",
       generation: "generation",
       classification: "classification"
     };
@@ -781,9 +836,13 @@ function setupAdvancedSearch() {
     clearButton?.click();
     document.querySelector('.tab[data-tab="advancedsearch"]')?.click();
     if (filterName) {
+      const categoryValues = ["paradox", "mega", "gmax", "gender"];
+      const isFormCategory = value.startsWith("regional:") || categoryValues.includes(value);
       filterInputs.forEach(input => {
-        input.checked = input === filterInput;
+        const isBaseClassification = ["regular", "legendary", "mythical"].includes(input.value);
+        input.checked = input === filterInput || (attribute === "classification" && isFormCategory && isBaseClassification);
       });
+      if (attribute === "classification") form.querySelector("#advancedSearchClassification").value = value;
     } else if (attribute === "move") {
       movePicker.select(value);
     } else if (attribute === "ability") {
@@ -808,7 +867,7 @@ function setupAdvancedSearch() {
     if (searchTimer) clearTimeout(searchTimer);
     hasSearched = false;
     form.reset();
-    ["#advancedSearchPokemon", "#advancedSearchFormTag"].forEach(selector => {
+    ["#advancedSearchPokemon", "#advancedSearchFormTag", "#advancedSearchClassification"].forEach(selector => {
       const input = form.querySelector(selector);
       if (!input) return;
       input.defaultValue = "";
