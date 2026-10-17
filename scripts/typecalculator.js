@@ -77,6 +77,8 @@ function renderTypeCalculator(pokemonTypes) {
         const span = document.createElement("span");
         span.className = `type ${type}`;
         span.textContent = capitalize(type);
+        span.dataset.searchAttribute = "type";
+        span.dataset.searchValue = type;
         chips.appendChild(span);
     });
 

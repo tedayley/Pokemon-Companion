@@ -105,6 +105,8 @@
     <div id="advancedsearch" class="tab-content">
       <h2>Advanced Search</h2>
       <form id="advancedSearchForm">
+        <input id="advancedSearchPokemon" name="pokemon" type="hidden" />
+        <input id="advancedSearchFormTag" name="formTag" type="hidden" />
         <div class="advanced-search-filters">
           <details class="advanced-filter-group" open>
             <summary>Generations</summary>
@@ -112,17 +114,7 @@
               <button type="button" data-check-group="generation" data-check-state="all">All</button>
               <button type="button" data-check-group="generation" data-check-state="none">None</button>
             </div>
-            <div class="advanced-search-toggles">
-              <label><input type="checkbox" name="generation" value="1" checked /> Gen 1</label>
-              <label><input type="checkbox" name="generation" value="2" checked /> Gen 2</label>
-              <label><input type="checkbox" name="generation" value="3" checked /> Gen 3</label>
-              <label><input type="checkbox" name="generation" value="4" checked /> Gen 4</label>
-              <label><input type="checkbox" name="generation" value="5" checked /> Gen 5</label>
-              <label><input type="checkbox" name="generation" value="6" checked /> Gen 6</label>
-              <label><input type="checkbox" name="generation" value="7" checked /> Gen 7</label>
-              <label><input type="checkbox" name="generation" value="8" checked /> Gen 8</label>
-              <label><input type="checkbox" name="generation" value="9" checked /> Gen 9</label>
-            </div>
+            <div id="advancedGenerationToggles" class="advanced-search-toggles"></div>
           </details>
           <details class="advanced-filter-group" open>
             <summary>Classification</summary>
@@ -135,12 +127,45 @@
               <label><input type="checkbox" name="classification" value="legendary" checked /> Legendary</label>
               <label><input type="checkbox" name="classification" value="mythical" checked /> Mythical</label>
             </div>
+            <div class="filter-group-actions">
+              <button type="button" data-check-group="variant" data-check-state="all">All variants</button>
+              <button type="button" data-check-group="variant" data-check-state="none">No variants</button>
+            </div>
+            <div id="advancedRegionalToggles" class="advanced-search-toggles"></div>
+            <div class="advanced-search-toggles">
+              <label><input type="checkbox" name="variant" value="paradox" /> Paradox</label>
+              <label><input type="checkbox" name="variant" value="mega" /> Mega</label>
+              <label><input type="checkbox" name="variant" value="gmax" /> Gigantamax</label>
+              <label><input type="checkbox" name="variant" value="gender" /> Gender</label>
+            </div>
+          </details>
+          <details class="advanced-filter-group">
+            <summary>Stages</summary>
+            <fieldset class="advanced-stage-filter">
+              <div class="filter-group-actions">
+                <button type="button" data-check-group="stage" data-check-state="all">All stages</button>
+                <button type="button" data-check-group="stage" data-check-state="none">No stages</button>
+              </div>
+              <div class="advanced-search-toggles">
+                <label><input type="checkbox" name="stage" value="1" /> Stage 1</label>
+                <label><input type="checkbox" name="stage" value="2" /> Stage 2</label>
+                <label><input type="checkbox" name="stage" value="3" /> Stage 3</label>
+                <label><input type="checkbox" name="stage" value="final" /> Final</label>
+              </div>
+              <div class="advanced-evolution-length">
+                <label><input id="advancedEvolutionLengthToggle" name="evolutionLengthEnabled" type="checkbox" /> Exact number of stages</label>
+                <label>Stages in line <input id="advancedEvolutionLength" name="evolutionLength" type="number" min="1" max="10" value="2" disabled /></label>
+              </div>
+            </fieldset>
           </details>
           <details class="advanced-filter-group">
             <summary>Types</summary>
             <div class="filter-group-actions">
               <button type="button" data-check-group="type" data-check-state="all">All</button>
               <button type="button" data-check-group="type" data-check-state="none">None</button>
+            </div>
+            <div class="advanced-search-toggles">
+              <label><input type="checkbox" name="excludeTypes" /> Exclude selected types</label>
             </div>
             <div class="advanced-search-toggles">
               <label><input type="checkbox" name="type" value="normal" checked /> Normal</label>
@@ -224,8 +249,13 @@
             </div>
           </details>
         </div>
+        <div class="advanced-random-options">
+          <label><input id="advancedRandomMultiple" type="checkbox" /> Multiple random picks</label>
+          <label>Number of picks <input id="advancedRandomCount" type="number" min="1" max="50" value="3" disabled /></label>
+        </div>
         <div class="advanced-search-actions">
           <button type="submit">Find Pokémon</button>
+          <button id="randomAdvancedSearch" type="button">Random Pokémon</button>
           <button id="clearAdvancedSearch" type="button">Clear</button>
         </div>
         <p id="advancedSearchStatus" class="advanced-search-status" aria-live="polite"></p>
@@ -247,6 +277,9 @@
 <footer>
   <p>Powered by PokéAPI</p>
 </footer>
+<div id="attributeSearchMenu" class="attribute-search-menu" hidden>
+  <button id="attributeSearchAction" type="button"></button>
+</div>
   <!-- Scripts -->
   <script defer src="scripts/main.js"></script>
   <script defer src="scripts/typecalculator.js"></script>

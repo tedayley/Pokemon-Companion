@@ -502,6 +502,8 @@ async function preloadAlternateFormArtwork(species) {
 // ===============================
 async function renderPokemon(data, species, pokemonNameEl, pokemonDexEl, pokemonImgEl, pokemonShinyImgEl, pokemonTypesEl, statsContainer, learnsetContainer, requestId) {
   pokemonNameEl.textContent = capitalize(data.name);
+  pokemonNameEl.dataset.searchAttribute = "pokemon";
+  pokemonNameEl.dataset.searchValue = data.name;
 
   const artwork = data.sprites?.other?.["official-artwork"] || {};
   const defaultImageUrl = artwork.front_default;
@@ -531,6 +533,8 @@ async function renderPokemon(data, species, pokemonNameEl, pokemonDexEl, pokemon
           .replace(species.name + "-", "")
           .replace(species.name, "Normal")
       );
+          btn.dataset.searchAttribute = "form";
+          btn.dataset.searchValue = v.pokemon.name;
 
       btn.addEventListener("click", () => {
         loadPokemon(
@@ -558,6 +562,8 @@ async function renderPokemon(data, species, pokemonNameEl, pokemonDexEl, pokemon
     const span = document.createElement("span");
     span.className = `type ${t.type.name}`;
     span.textContent = capitalize(t.type.name);
+    span.dataset.searchAttribute = "type";
+    span.dataset.searchValue = t.type.name;
     typesFragment.appendChild(span);
   });
   pokemonTypesEl.replaceChildren(typesFragment);
@@ -578,6 +584,8 @@ async function renderPokemon(data, species, pokemonNameEl, pokemonDexEl, pokemon
         const span = document.createElement("span");
         span.className = "ability";
         span.textContent = capitalize(abilityEntry.ability.name);
+        span.dataset.searchAttribute = "ability";
+        span.dataset.searchValue = abilityEntry.ability.name;
 
         try {
           const abilityData = await fetchJson(abilityEntry.ability.url);
@@ -659,6 +667,8 @@ async function renderEvolutionLine(species, pokemonRequestId) {
       const stageLabel = document.createElement("span");
       stageLabel.className = "evolution-stage-label";
       stageLabel.textContent = `Stage ${index + 1}`;
+      stageLabel.dataset.searchAttribute = "stage";
+      stageLabel.dataset.searchValue = String(index + 1);
       stageRow.appendChild(stageLabel);
 
       stage.forEach(evolution => {
@@ -668,6 +678,8 @@ async function renderEvolutionLine(species, pokemonRequestId) {
         button.type = "button";
         button.className = `evolution-button${isCurrentSpecies ? " active-evolution" : ""}`;
         button.textContent = capitalize(name.replace(/-/g, " "));
+        button.dataset.searchAttribute = "stage";
+        button.dataset.searchValue = evolution.evolves_to.length === 0 ? "final" : String(index + 1);
         if (isCurrentSpecies) {
           button.disabled = true;
           button.setAttribute("aria-current", "true");
@@ -711,6 +723,9 @@ function renderStats(stats, container) {
 
     const li = document.createElement("li");
     li.className = "stat-row";
+    li.dataset.searchAttribute = "stat";
+    li.dataset.searchValue = stat.stat.name;
+    li.dataset.searchExactValue = String(stat.base_stat);
     li.style.display = "flex";
     li.style.alignItems = "center";
     li.style.gap = "10px";
@@ -754,6 +769,9 @@ function renderStats(stats, container) {
 
   const totalLi = document.createElement("li");
   totalLi.className = "stat-row";
+  totalLi.dataset.searchAttribute = "stat";
+  totalLi.dataset.searchValue = "total";
+  totalLi.dataset.searchExactValue = String(total);
   totalLi.style.display = "flex";
   totalLi.style.alignItems = "center";
   totalLi.style.gap = "10px";
@@ -818,6 +836,8 @@ function renderLearnset(moves, container) {
       const moveTd = document.createElement("td");
       moveTd.textContent = capitalize(m.name);
       moveTd.classList.add("move-name");
+      moveTd.dataset.searchAttribute = "move";
+      moveTd.dataset.searchValue = m.name;
       attachMoveTooltip(moveTd, m.url);
 
       row.append(levelTd, moveTd);
@@ -868,6 +888,8 @@ function renderOtherMoves(moves, container) {
     const moveTd = document.createElement("td");
     moveTd.textContent = capitalize(entry.moveName);
     moveTd.classList.add("move-name");
+    moveTd.dataset.searchAttribute = "move";
+    moveTd.dataset.searchValue = entry.moveName;
 
     attachMoveTooltip(moveTd, entry.moveUrl);
 
